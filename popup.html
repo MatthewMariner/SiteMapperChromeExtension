@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        width: 400px;
+        padding: 10px;
+        font-family: Arial, sans-serif;
+      }
+      .source-section {
+        margin-bottom: 15px;
+      }
+      .source-header {
+        font-weight: bold;
+        margin-bottom: 5px;
+        padding: 5px;
+        background: #f5f5f5;
+      }
+      .nav-item {
+        padding: 5px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+      }
+      .nav-item:hover {
+        background-color: #f5f5f5;
+      }
+      #loading {
+        text-align: center;
+        color: #666;
+      }
+      .error {
+        color: red;
+        font-size: 0.9em;
+        margin: 5px 0;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">Discovering site structure...</div>
+    <div id="nav-menu"></div>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Site Structure Navigator",
+  "version": "1.0",
+  "description": "Creates a navigation menu from multiple site structure sources",
+  "permissions": ["activeTab", "scripting", "webNavigation"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
