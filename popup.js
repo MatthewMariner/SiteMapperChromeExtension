@@ -1,3 +1,62 @@
+class PathFilter {
+  constructor(pattern) {
+    this.pattern = pattern.toLowerCase();
+    this.segments = pattern.split("/").filter(Boolean);
+    this.regexPattern = this.createRegexPattern(pattern);
+  }
+
+  createRegexPattern(pattern) {
+    // If no pattern, match everything
+    if (!pattern) return new RegExp(".*");
+
+    // Convert the pattern into a regex pattern
+    const regexPattern = pattern
+      .toLowerCase()
+      // Escape special regex characters except *
+      .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+      // Replace ** with special temporary token
+      .replace(/\*\*/g, "___DOUBLE_WILDCARD___")
+      // Replace * with regex for single segment
+      .replace(/\*/g, "[^/]*")
+      // Replace double wildcard token with regex for multiple segments
+      .replace(/___DOUBLE_WILDCARD___/g, ".*");
+
+    // Add start anchor but make it a partial match (don't add end anchor)
+    return new RegExp(`^${regexPattern}`, "i");
+  }
+
+  matches(path) {
+    // If no pattern, show everything
+    if (!this.pattern) return true;
+
+    // Normalize path for comparison
+    const normalizedPath = path.toLowerCase();
+
+    // If the pattern includes slashes, use segment matching
+    if (this.pattern.includes("/")) {
+      const pathSegments = path.split("/").filter(Boolean);
+
+      // For each segment in the search pattern
+      return this.segments.every((searchSegment, index) => {
+        // If we've run out of path segments, no match
+        if (index >= pathSegments.length) return false;
+
+        const pathSegment = pathSegments[index].toLowerCase();
+
+        if (searchSegment === "*") return true;
+        if (searchSegment === "**") return true;
+
+        // Partial segment matching
+        return pathSegment.includes(searchSegment.toLowerCase());
+      });
+    }
+
+    // For non-segmented searches (no slashes), do a simple includes check
+    // This allows matching any part of any segment
+    return normalizedPath.includes(this.pattern);
+  }
+}
+
 class SiteMapper {
   constructor(baseUrl) {
     this.baseUrl = baseUrl;
@@ -251,6 +310,53 @@ class SiteMapper {
 document.addEventListener("DOMContentLoaded", async () => {
   const loading = document.getElementById("loading");
   const navMenu = document.getElementById("nav-menu");
+  const searchInput = document.getElementById("search-input");
+  const noResults = document.getElementById("no-results");
+  let allPaths = [];
+
+  function filterPaths(searchText) {
+    if (!searchText.trim()) {
+      // Show all paths if search is empty
+      document.querySelectorAll(".nav-item").forEach((item) => {
+        item.classList.remove("hidden");
+      });
+      document.querySelectorAll(".source-section").forEach((section) => {
+        section.style.display = "block";
+      });
+      noResults.style.display = "none";
+      return;
+    }
+
+    const filter = new PathFilter(searchText.trim());
+    let hasVisibleItems = false;
+
+    // Filter items
+    document.querySelectorAll(".nav-item").forEach((item) => {
+      const path = item.textContent;
+      const matches = filter.matches(path);
+      item.classList.toggle("hidden", !matches);
+      if (matches) hasVisibleItems = true;
+    });
+
+    // Hide empty sections
+    document.querySelectorAll(".source-section").forEach((section) => {
+      const hasVisibleChildren = Array.from(
+        section.querySelectorAll(".nav-item")
+      ).some((item) => !item.classList.contains("hidden"));
+      section.style.display = hasVisibleChildren ? "block" : "none";
+    });
+
+    noResults.style.display = hasVisibleItems ? "none" : "block";
+  }
+
+  // Add search input handler with debounce
+  let debounceTimeout;
+  searchInput.addEventListener("input", (e) => {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => {
+      filterPaths(e.target.value);
+    }, 300);
+  });
 
   try {
     // Get current tab URL
@@ -273,6 +379,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (paths.length === 0) {
       throw new Error("No paths found on this site");
     }
+
+    allPaths = paths;
 
     // Group paths by source/section
     const sections = {
