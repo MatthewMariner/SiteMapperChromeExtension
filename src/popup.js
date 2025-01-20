@@ -86,7 +86,26 @@ class SiteMapper {
       this.checkCommonPaths(),
     ]);
 
-    return Array.from(this.paths).sort();
+    const paths = Array.from(this.paths).sort();
+
+    // Get current tab ID and update badge
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      if (tab) {
+        chrome.runtime.sendMessage({
+          type: "UPDATE_PAGE_COUNT",
+          tabId: tab.id,
+          count: paths.length,
+        });
+      }
+    } catch (error) {
+      console.warn("Error updating badge:", error);
+    }
+
+    return paths;
   }
 
   async fetchWithTimeout(url, timeout = 5000) {
