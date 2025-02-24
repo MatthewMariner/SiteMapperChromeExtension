@@ -8,7 +8,7 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "permissions": ["activeTab", "scripting", "webNavigation"],
+  "permissions": ["activeTab", "scripting"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
