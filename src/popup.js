@@ -337,6 +337,40 @@ document.addEventListener("DOMContentLoaded", async () => {
   const refreshBtn = document.getElementById("refresh-btn");
   let allPaths = [];
   let currentDomain = "";
+  let isUsingCache = false;
+
+  async function getCachedPaths(domain) {
+    try {
+      const result = await chrome.storage.local.get([domain]);
+      if (result[domain] && result[domain].paths) {
+        return result[domain].paths;
+      }
+    } catch (error) {
+      console.warn("Error retrieving cached paths:", error);
+    }
+    return null;
+  }
+
+  async function cachePaths(domain, paths) {
+    try {
+      await chrome.storage.local.set({
+        [domain]: {
+          paths: paths,
+          timestamp: Date.now()
+        }
+      });
+    } catch (error) {
+      console.warn("Error caching paths:", error);
+    }
+  }
+
+  async function clearCache(domain) {
+    try {
+      await chrome.storage.local.remove([domain]);
+    } catch (error) {
+      console.warn("Error clearing cache:", error);
+    }
+  }
 
   function getVisiblePaths() {
     return Array.from(document.querySelectorAll(".nav-item"))
@@ -439,42 +473,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Add refresh button handler
   if (refreshBtn) {
-    refreshBtn.addEventListener("click", () => {
+    refreshBtn.addEventListener("click", async () => {
+      if (currentDomain) {
+        await clearCache(currentDomain);
+      }
       window.location.reload();
     });
   }
 
-  try {
-    // Get current tab URL
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-
-    // Check if we're on a webpage
-    if (!tab.url.startsWith("http")) {
-      throw new Error("This extension only works on web pages");
-    }
-
-    const url = new URL(tab.url);
-    const baseUrl = `${url.protocol}//${url.hostname}`;
-    currentDomain = baseUrl;
+  function renderPaths(paths, baseUrl, faviconUrl) {
+    // Clear existing content
+    navMenu.innerHTML = "";
     
-    // Get favicon URL
-    const faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
-
-    const siteMapper = new SiteMapper(baseUrl);
-    const paths = await siteMapper.getAllPaths();
-
-    if (paths.length === 0) {
-      throw new Error("No paths found on this site");
-    }
-
-    allPaths = paths;
-    
-    // Show export buttons once paths are loaded
-    exportContainer.classList.add("visible");
-
     // Group paths by source/section
     const sections = {
       "Main Pages": paths.filter((p) => p.split("/").length === 2),
@@ -492,7 +502,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const header = document.createElement("div");
         header.className = "source-header";
         header.innerHTML = `
-          <span>${title}</span>
+          <span>${title}${isUsingCache ? " (cached)" : ""}</span>
           <span class="source-count">${sectionPaths.length}</span>
         `;
         section.appendChild(header);
@@ -610,6 +620,57 @@ document.addEventListener("DOMContentLoaded", async () => {
         navMenu.appendChild(section);
       }
     });
+    
+    // Show export buttons once paths are loaded
+    exportContainer.classList.add("visible");
+  }
+
+  try {
+    // Get current tab URL
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    // Check if we're on a webpage
+    if (!tab.url.startsWith("http")) {
+      throw new Error("This extension only works on web pages");
+    }
+
+    const url = new URL(tab.url);
+    const baseUrl = `${url.protocol}//${url.hostname}`;
+    currentDomain = baseUrl;
+    
+    // Get favicon URL
+    const faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
+
+    // Check for cached paths first
+    const cachedPaths = await getCachedPaths(baseUrl);
+    
+    if (cachedPaths && cachedPaths.length > 0) {
+      // Use cached paths
+      isUsingCache = true;
+      allPaths = cachedPaths;
+      loading.style.display = "none";
+      renderPaths(cachedPaths, baseUrl, faviconUrl);
+    } else {
+      // Fetch fresh paths
+      isUsingCache = false;
+      const siteMapper = new SiteMapper(baseUrl);
+      const paths = await siteMapper.getAllPaths();
+
+      if (paths.length === 0) {
+        throw new Error("No paths found on this site");
+      }
+
+      allPaths = paths;
+      
+      // Cache the paths for future use
+      await cachePaths(baseUrl, paths);
+      
+      loading.style.display = "none";
+      renderPaths(paths, baseUrl, faviconUrl);
+    }
   } catch (err) {
     const error = document.createElement("div");
     error.className = "error";
