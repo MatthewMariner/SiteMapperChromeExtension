@@ -27,10 +27,6 @@ class ProManager {
   }
 
   enableProFeatures() {
-    // Show bulk selection UI
-    const bulkActions = document.getElementById('bulkActions');
-    if (bulkActions) bulkActions.style.display = 'flex';
-    
     // Add checkboxes to path items
     this.addBulkCheckboxes();
   }
@@ -126,7 +122,6 @@ class ProManager {
             <div class="price">$4.99/mo</div>
           </div>
           <div class="price-card featured">
-            <span class="badge">BEST VALUE</span>
             <h3>Annual</h3>
             <div class="price">$20/yr</div>
             <small>Save 67%</small>
@@ -642,15 +637,91 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Check Pro status
   await proManager.checkStatus();
+  const upgradeBtn = document.getElementById('upgrade-btn');
+  const statusPill = document.getElementById('status-pill');
+  
   if (proManager.isPro) {
-    // Add Pro badge to header
-    const header = document.querySelector('h1');
-    if (header) {
-      const proBadge = document.createElement('span');
-      proBadge.className = 'pro-badge';
-      proBadge.textContent = 'PRO';
-      header.appendChild(proBadge);
+    // Update status pill to PAID
+    if (statusPill) {
+      statusPill.textContent = 'PAID';
+      statusPill.className = 'status-pill paid';
     }
+    
+    // Update upgrade button to show Pro status
+    if (upgradeBtn) {
+      upgradeBtn.classList.add('pro-active');
+      upgradeBtn.innerHTML = `
+        <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        </svg>
+        <span>PRO</span>
+      `;
+      upgradeBtn.title = 'Pro features active';
+    }
+  } else {
+    // Keep FREE status pill (already set in HTML)
+    
+    // Add click handler to upgrade button
+    if (upgradeBtn) {
+      upgradeBtn.addEventListener('click', () => {
+        proManager.showUpgradePrompt();
+      });
+    }
+  }
+  
+  // Add Try Bulk Export button handler (toggle functionality)
+  const tryBulkExportBtn = document.getElementById('try-bulk-export');
+  let bulkModeActive = false;
+  
+  if (tryBulkExportBtn) {
+    tryBulkExportBtn.addEventListener('click', () => {
+      if (proManager.isPro) {
+        // Toggle bulk mode for Pro users
+        bulkModeActive = !bulkModeActive;
+        const bulkActions = document.getElementById('bulkActions');
+        
+        if (bulkModeActive) {
+          // Enable bulk selection mode
+          proManager.enableProFeatures();
+          if (bulkActions) bulkActions.style.display = 'flex';
+          
+          // Update button appearance
+          tryBulkExportBtn.classList.add('active');
+          tryBulkExportBtn.innerHTML = `
+            <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+            <span>Hide Bulk Mode</span>
+          `;
+        } else {
+          // Disable bulk selection mode
+          if (bulkActions) bulkActions.style.display = 'none';
+          
+          // Remove checkboxes
+          document.querySelectorAll('.bulk-checkbox').forEach(cb => {
+            cb.remove();
+          });
+          
+          // Clear selections
+          proManager.selectedUrls.clear();
+          proManager.updateSelectedCount();
+          
+          // Update button appearance
+          tryBulkExportBtn.classList.remove('active');
+          tryBulkExportBtn.innerHTML = `
+            <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M9 3V4H4V6H5V19A2 2 0 0 0 7 21H17A2 2 0 0 0 19 19V6H20V4H15V3H9M7 6H17V19H7V6M9 8V17H11V8H9M13 8V17H15V8H13Z"/>
+            </svg>
+            <span>Bulk Export 
+              <span style="background: #ffd700; color: #333; padding: 1px 4px; border-radius: 3px; font-size: 9px; margin-left: 4px;">PRO</span>
+            </span>
+          `;
+        }
+      } else {
+        // Show upgrade prompt for free users
+        proManager.showUpgradePrompt();
+      }
+    });
   }
   let isUsingCache = false;
 
