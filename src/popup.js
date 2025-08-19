@@ -1,3 +1,170 @@
+// Pro Status Manager
+class ProManager {
+  constructor() {
+    this.isPro = false;
+    this.userInfo = null;
+    this.selectedUrls = new Set();
+  }
+
+  async checkStatus() {
+    try {
+      const response = await chrome.runtime.sendMessage({ type: "CHECK_PRO_STATUS" });
+      this.isPro = response.paid;
+      this.userInfo = response;
+      return this.isPro;
+    } catch (error) {
+      console.error('Failed to check Pro status:', error);
+      return false;
+    }
+  }
+
+  async openPaymentPage() {
+    chrome.runtime.sendMessage({ type: "OPEN_PAYMENT_PAGE" });
+  }
+
+  async openLoginPage() {
+    chrome.runtime.sendMessage({ type: "OPEN_LOGIN_PAGE" });
+  }
+
+  enableProFeatures() {
+    // Show bulk selection UI
+    const bulkActions = document.getElementById('bulkActions');
+    if (bulkActions) bulkActions.style.display = 'flex';
+    
+    // Add checkboxes to path items
+    this.addBulkCheckboxes();
+  }
+
+  addBulkCheckboxes() {
+    document.querySelectorAll('.path-item').forEach(item => {
+      if (item.querySelector('.bulk-checkbox')) return; // Already added
+      
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'bulk-checkbox';
+      checkbox.addEventListener('change', (e) => {
+        const url = item.dataset.url;
+        if (e.target.checked) {
+          this.selectedUrls.add(url);
+        } else {
+          this.selectedUrls.delete(url);
+        }
+        this.updateSelectedCount();
+      });
+      item.prepend(checkbox);
+    });
+  }
+
+  updateSelectedCount() {
+    const countElement = document.querySelector('.selected-count');
+    if (countElement) {
+      countElement.textContent = `${this.selectedUrls.size} selected`;
+    }
+  }
+
+  async bulkExport(format = 'csv') {
+    if (!this.isPro) {
+      this.showUpgradePrompt();
+      return;
+    }
+
+    const urls = Array.from(this.selectedUrls);
+    if (urls.length === 0) {
+      alert('Please select URLs to export');
+      return;
+    }
+
+    // Export selected URLs
+    const data = urls.map(url => ({
+      url,
+      path: new URL(url).pathname,
+      depth: url.split('/').length - 3,
+      selected: new Date().toISOString()
+    }));
+
+    if (format === 'csv') {
+      this.downloadCSV(data);
+    } else {
+      this.downloadJSON(data);
+    }
+  }
+
+  downloadCSV(data) {
+    const csv = [
+      ['URL', 'Path', 'Depth', 'Selected At'],
+      ...data.map(row => [row.url, row.path, row.depth, row.selected])
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bulk_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  }
+
+  downloadJSON(data) {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bulk_export_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+  }
+
+  showUpgradePrompt() {
+    const modal = document.createElement('div');
+    modal.className = 'upgrade-modal';
+    modal.innerHTML = `
+      <div class="upgrade-content">
+        <h2>🚀 Upgrade to Pro</h2>
+        <p>Unlock bulk export and advanced features!</p>
+        <div class="pricing-cards">
+          <div class="price-card">
+            <h3>Monthly</h3>
+            <div class="price">$4.99/mo</div>
+          </div>
+          <div class="price-card featured">
+            <span class="badge">BEST VALUE</span>
+            <h3>Annual</h3>
+            <div class="price">$20/yr</div>
+            <small>Save 67%</small>
+          </div>
+          <div class="price-card">
+            <h3>Lifetime</h3>
+            <div class="price">$39</div>
+            <small>One-time</small>
+          </div>
+        </div>
+        <div class="upgrade-actions">
+          <button id="upgradeBtn" class="btn-primary">Upgrade Now</button>
+          <button id="loginBtn" class="btn-secondary">Already Pro? Login</button>
+          <button id="closeUpgrade" class="btn-text">Maybe Later</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById('upgradeBtn').addEventListener('click', () => {
+      this.openPaymentPage();
+      document.body.removeChild(modal);
+    });
+
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      this.openLoginPage();
+      document.body.removeChild(modal);
+    });
+
+    document.getElementById('closeUpgrade').addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+  }
+}
+
+// Initialize Pro Manager
+const proManager = new ProManager();
+
 class PathFilter {
   constructor(pattern) {
     this.pattern = pattern.toLowerCase();
@@ -472,6 +639,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   const refreshBtn = document.getElementById("refresh-btn");
   let allPaths = [];
   let currentDomain = "";
+
+  // Check Pro status
+  await proManager.checkStatus();
+  if (proManager.isPro) {
+    // Add Pro badge to header
+    const header = document.querySelector('h1');
+    if (header) {
+      const proBadge = document.createElement('span');
+      proBadge.className = 'pro-badge';
+      proBadge.textContent = 'PRO';
+      header.appendChild(proBadge);
+    }
+  }
   let isUsingCache = false;
 
   // Initialize settings
@@ -873,6 +1053,45 @@ document.addEventListener("DOMContentLoaded", async () => {
   exportCsvBtn.addEventListener("click", exportAsCSV);
   exportJsonBtn.addEventListener("click", exportAsJSON);
   
+  // Add bulk action handlers (Pro features)
+  const selectAllBtn = document.getElementById("selectAll");
+  const deselectAllBtn = document.getElementById("deselectAll");
+  const bulkExportCsvBtn = document.getElementById("bulkExportCsv");
+  const bulkExportJsonBtn = document.getElementById("bulkExportJson");
+  
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener("click", () => {
+      document.querySelectorAll('.bulk-checkbox').forEach(cb => {
+        cb.checked = true;
+        const url = cb.parentElement.dataset.url;
+        if (url) proManager.selectedUrls.add(url);
+      });
+      proManager.updateSelectedCount();
+    });
+  }
+  
+  if (deselectAllBtn) {
+    deselectAllBtn.addEventListener("click", () => {
+      document.querySelectorAll('.bulk-checkbox').forEach(cb => {
+        cb.checked = false;
+      });
+      proManager.selectedUrls.clear();
+      proManager.updateSelectedCount();
+    });
+  }
+  
+  if (bulkExportCsvBtn) {
+    bulkExportCsvBtn.addEventListener("click", () => {
+      proManager.bulkExport('csv');
+    });
+  }
+  
+  if (bulkExportJsonBtn) {
+    bulkExportJsonBtn.addEventListener("click", () => {
+      proManager.bulkExport('json');
+    });
+  }
+  
   // Add refresh button handler
   if (refreshBtn) {
     refreshBtn.addEventListener("click", async () => {
@@ -965,8 +1184,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           const path = item.path || item;
           const status = item.status;
           const div = document.createElement("div");
-          div.className = "nav-item";
+          div.className = "nav-item path-item";
           div.dataset.path = path;
+          div.dataset.url = baseUrl + path;
           
           // Icon with favicon or first letter
           const icon = document.createElement("div");
@@ -1162,6 +1382,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     // Show export buttons once paths are loaded
     exportContainer.classList.add("visible");
+    
+    // Enable Pro features if user is Pro
+    if (proManager.isPro) {
+      proManager.enableProFeatures();
+    }
   }
 
   try {

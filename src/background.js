@@ -1,4 +1,10 @@
 // background.js
+importScripts('ExtPay.js');
+
+// Initialize ExtensionPay
+const extpay = ExtPay('site-structure-navigator');
+extpay.startBackground();
+
 let tabPageCounts = new Map();
 
 // Keep service worker alive
@@ -64,5 +70,27 @@ function updateBadge(tabId, count) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "UPDATE_PAGE_COUNT") {
     updateBadge(message.tabId, message.count);
+  } else if (message.type === "CHECK_PRO_STATUS") {
+    // Check user's Pro status with ExtensionPay
+    const extpay = ExtPay('site-structure-navigator');
+    extpay.getUser().then(user => {
+      sendResponse({
+        paid: user.paid,
+        email: user.email,
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionCancelAt: user.subscriptionCancelAt,
+        trialStartedAt: user.trialStartedAt
+      });
+    }).catch(error => {
+      console.error('ExtensionPay error:', error);
+      sendResponse({ paid: false, error: true });
+    });
+    return true; // Required for async response
+  } else if (message.type === "OPEN_PAYMENT_PAGE") {
+    const extpay = ExtPay('site-structure-navigator');
+    extpay.openPaymentPage();
+  } else if (message.type === "OPEN_LOGIN_PAGE") {
+    const extpay = ExtPay('site-structure-navigator');
+    extpay.openLoginPage();
   }
 });

@@ -68,6 +68,8 @@ module.exports = {
             return content.toString().replace(/\s+/g, " ").trim();
           },
         },
+        // Add ExtPay.js
+        { from: "./src/ExtPay.js", to: "ExtPay.js" },
         // Add any icons or other assets
         { from: "./src/icons", to: "icons" },
       ],
