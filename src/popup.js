@@ -404,6 +404,63 @@ class SiteMapper {
   }
 }
 
+// Settings manager
+class SettingsManager {
+  constructor() {
+    this.settings = {
+      hideXml: false,
+      hideFiles: false,
+      autoPing: true,
+      theme: 'dark'
+    };
+    this.loadSettings();
+  }
+
+  loadSettings() {
+    try {
+      const stored = localStorage.getItem('siteNavigatorSettings');
+      if (stored) {
+        this.settings = { ...this.settings, ...JSON.parse(stored) };
+      }
+    } catch (e) {
+      console.warn('Failed to load settings:', e);
+    }
+  }
+
+  saveSettings() {
+    try {
+      localStorage.setItem('siteNavigatorSettings', JSON.stringify(this.settings));
+    } catch (e) {
+      console.warn('Failed to save settings:', e);
+    }
+  }
+
+  get(key) {
+    return this.settings[key];
+  }
+
+  set(key, value) {
+    this.settings[key] = value;
+    this.saveSettings();
+  }
+
+  shouldShowPath(path) {
+    if (this.settings.hideXml && path.toLowerCase().endsWith('.xml')) {
+      return false;
+    }
+    
+    if (this.settings.hideFiles) {
+      const hasExtension = /\.[a-zA-Z0-9]+$/.test(path);
+      const isHtml = /\.(html?|php|asp|jsp)$/i.test(path);
+      if (hasExtension && !isHtml) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const loading = document.getElementById("loading");
   const navMenu = document.getElementById("nav-menu");
@@ -416,6 +473,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   let allPaths = [];
   let currentDomain = "";
   let isUsingCache = false;
+
+  // Initialize settings
+  const settings = new SettingsManager();
+
+  // Apply initial theme
+  if (settings.get('theme') === 'light') {
+    document.body.classList.add('light-theme');
+  }
 
   // Focus search input on load
   setTimeout(() => searchInput.focus(), 100);
@@ -447,8 +512,60 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (targetView === 'tree' && allPaths.length > 0) {
         buildTreeView(allPaths, currentDomain, globalFaviconUrl);
       }
+      
+      // Initialize settings if switching to settings view
+      if (targetView === 'settings') {
+        initializeSettingsUI();
+      }
     });
   });
+  
+  // Initialize settings UI
+  function initializeSettingsUI() {
+    // Set initial toggle states
+    document.getElementById('hide-xml').checked = settings.get('hideXml');
+    document.getElementById('hide-files').checked = settings.get('hideFiles');
+    document.getElementById('auto-ping').checked = settings.get('autoPing');
+    
+    // Set active theme button
+    document.querySelectorAll('.theme-option').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.theme === settings.get('theme'));
+    });
+    
+    // Add event listeners for toggles
+    document.getElementById('hide-xml').addEventListener('change', (e) => {
+      settings.set('hideXml', e.target.checked);
+      renderPaths(allPaths, currentDomain, globalFaviconUrl);
+    });
+    
+    document.getElementById('hide-files').addEventListener('change', (e) => {
+      settings.set('hideFiles', e.target.checked);
+      renderPaths(allPaths, currentDomain, globalFaviconUrl);
+    });
+    
+    document.getElementById('auto-ping').addEventListener('change', (e) => {
+      settings.set('autoPing', e.target.checked);
+    });
+    
+    // Add event listeners for theme buttons
+    document.querySelectorAll('.theme-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.dataset.theme;
+        settings.set('theme', theme);
+        
+        // Update UI
+        document.querySelectorAll('.theme-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Apply theme
+        if (theme === 'light') {
+          document.body.classList.add('light-theme');
+        } else {
+          document.body.classList.remove('light-theme');
+        }
+      });
+    });
+  }
 
   // Build tree structure from paths
   function buildTreeStructure(pathsData) {
@@ -810,6 +927,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       }).filter(item => item.path); // Filter out any empty paths
     }
     
+    // Apply settings filters
+    pathItems = pathItems.filter(item => settings.shouldShowPath(item.path));
+    
     // Group paths by source/section
     const sections = {
       "Main Pages": pathItems.filter((p) => {
@@ -1017,18 +1137,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       loading.style.display = "none";
       renderPaths(pathsData, baseUrl, faviconUrl);
       
-      // Check statuses in the background after rendering
-      siteMapper.batchCheckStatuses(pathsData, 5, 50, (path, status) => {
-        updateStatusPill(path, status);
-        // Update the cached data with status
-        const item = pathsData.find(p => p.path === path);
-        if (item) {
-          item.status = status;
-        }
-      }).then(() => {
-        // Re-cache with status information
-        cachePaths(baseUrl, pathsData);
-      });
+      // Check statuses in the background after rendering (if enabled)
+      if (settings.get('autoPing')) {
+        siteMapper.batchCheckStatuses(pathsData, 5, 50, (path, status) => {
+          updateStatusPill(path, status);
+          // Update the cached data with status
+          const item = pathsData.find(p => p.path === path);
+          if (item) {
+            item.status = status;
+          }
+        }).then(() => {
+          // Re-cache with status information
+          cachePaths(baseUrl, pathsData);
+        });
+      }
     }
   } catch (err) {
     const error = document.createElement("div");
