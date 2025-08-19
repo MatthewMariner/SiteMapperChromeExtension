@@ -259,6 +259,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ paid: false, error: true });
     });
     return true; // Required for async response
+  } else if (message.type === "LOGOUT_USER") {
+    // Handle logout request
+    (async () => {
+      try {
+        // Clear license cache
+        await chrome.storage.local.remove(['license_cache', 'license_timestamp']);
+        
+        // Clear ExtensionPay user session if possible
+        const extpay = ExtPay('site-structure-navigator');
+        // ExtensionPay doesn't have a direct logout, but clearing cache effectively logs out
+        
+        sendResponse({ success: true });
+      } catch (error) {
+        console.error('Logout error:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true; // Keep message channel open for async response
   } else if (message.type === "OPEN_PAYMENT_PAGE") {
     const extpay = ExtPay('site-structure-navigator');
     extpay.openPaymentPage();

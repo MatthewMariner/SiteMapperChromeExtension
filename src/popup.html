@@ -1610,6 +1610,36 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 12px;
+      }
+      
+      .settings-logout {
+        display: flex;
+        align-items: center;
+        padding: 6px 12px;
+        background: transparent;
+        color: #ef4444;
+        border: 1px solid #ef4444;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin: 0 auto;
+      }
+      
+      .settings-logout:hover {
+        background: rgba(239, 68, 68, 0.1);
+        transform: translateY(-1px);
+      }
+      
+      body.light-theme .settings-logout {
+        color: #dc2626;
+        border-color: #dc2626;
+      }
+      
+      body.light-theme .settings-logout:hover {
+        background: rgba(220, 38, 38, 0.08);
       }
       
       .settings-version {
@@ -1774,8 +1804,12 @@
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="search-container">
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- List View -->
+      <div id="list-view" class="view-container active">
+        <!-- Search - Only visible in List View -->
+        <div class="search-container">
       <div class="search-wrapper" style="position: relative;">
         <svg class="search-icon icon-sm" fill="currentColor" viewBox="0 0 24 24">
           <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
@@ -1790,8 +1824,8 @@
       </div>
     </div>
 
-    <!-- Bulk Actions (Pro Feature) -->
-    <div id="bulkActions" class="bulk-actions" style="display: none;">
+        <!-- Bulk Actions (Pro Feature) - Only visible in List View -->
+        <div id="bulkActions" class="bulk-actions" style="display: none;">
       <div class="bulk-toolbar">
         <button id="selectAll" class="bulk-btn">Select All</button>
         <button id="deselectAll" class="bulk-btn">Deselect None</button>
@@ -1887,8 +1921,8 @@
       </div>
     </div>
 
-    <!-- Export Buttons -->
-    <div id="export-container" class="export-container">
+        <!-- Export Buttons - Only visible in List View -->
+        <div id="export-container" class="export-container">
       <button id="export-csv" class="export-btn">
         <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
           <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
@@ -1911,10 +1945,7 @@
       </button>
     </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-      <!-- List View -->
-      <div id="list-view" class="view-container active">
+        <!-- List Content -->
         <div id="loading">
           <svg class="icon" fill="currentColor" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;">
             <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
@@ -2369,7 +2400,14 @@
           </div>
           
           <div class="settings-footer">
-            <div class="settings-version">Version 1.0.1</div>
+            <div class="settings-version">Version 1.2.0</div>
+            <button id="logout-btn" class="settings-logout" style="display: none;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;">
+                <path d="M16 13v-2H7V8l-5 4 5 4v-3z"/>
+                <path d="M20 3h-9c-1.11 0-2 .89-2 2v4h2V5h9v14h-9v-4H9v4c0 1.11.89 2 2 2h9c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2z"/>
+              </svg>
+              Logout
+            </button>
             <a href="https://github.com/MatthewMariner/SiteMapperChromeExtension" target="_blank" class="settings-link">
               View on GitHub
             </a>

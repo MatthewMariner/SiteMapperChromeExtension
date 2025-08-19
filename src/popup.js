@@ -814,6 +814,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await proManager.checkStatus();
   const upgradeBtn = document.getElementById('upgrade-btn');
   const statusPill = document.getElementById('status-pill');
+  const logoutBtn = document.getElementById('logout-btn');
   
   if (proManager.isPro) {
     // Update status pill to PAID
@@ -838,6 +839,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (searchInput) {
       searchInput.placeholder = 'Search paths (* wildcards, /regex/ for Pro regex)';
     }
+    
+    // Show and configure logout button for Pro users
+    if (logoutBtn) {
+      logoutBtn.style.display = 'flex';
+      logoutBtn.innerHTML = `
+        <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+        </svg>
+        Logout
+      `;
+      logoutBtn.addEventListener('click', async () => {
+        if (confirm('Are you sure you want to logout? This will clear your Pro status and cached data.')) {
+          try {
+            // Clear ExtensionPay session
+            await chrome.runtime.sendMessage({ type: "LOGOUT_USER" });
+            
+            // Clear all cached data
+            await chrome.storage.local.clear();
+            
+            // Reload the extension
+            window.location.reload();
+          } catch (err) {
+            console.error('Logout failed:', err);
+            alert('Failed to logout. Please try again.');
+          }
+        }
+      });
+    }
   } else {
     // Keep FREE status pill (already set in HTML)
     
@@ -846,6 +875,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       upgradeBtn.addEventListener('click', () => {
         proManager.showUpgradePrompt();
       });
+    }
+    
+    // Hide logout button for free users
+    if (logoutBtn) {
+      logoutBtn.style.display = 'none';
     }
   }
   
