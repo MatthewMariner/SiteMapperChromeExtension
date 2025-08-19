@@ -13,9 +13,32 @@ class ProManager {
       const response = await chrome.runtime.sendMessage({ type: "CHECK_PRO_STATUS" });
       this.isPro = response.paid;
       this.userInfo = response;
+      
+      // Check if using cached/grace period
+      if (response.cacheTimestamp) {
+        const cacheAge = Date.now() - response.cacheTimestamp;
+        const hours = Math.floor(cacheAge / (1000 * 60 * 60));
+        if (hours > 24) {
+          console.log(`Using grace period license (${Math.floor(hours/24)} days old)`);
+          // Could show a subtle indicator if needed
+        }
+      }
+      
       return this.isPro;
     } catch (error) {
       console.error('Failed to check Pro status:', error);
+      return false;
+    }
+  }
+  
+  async forceRevalidation() {
+    try {
+      const response = await chrome.runtime.sendMessage({ type: "FORCE_LICENSE_CHECK" });
+      this.isPro = response.paid;
+      this.userInfo = response;
+      return this.isPro;
+    } catch (error) {
+      console.error('Failed to force revalidation:', error);
       return false;
     }
   }
