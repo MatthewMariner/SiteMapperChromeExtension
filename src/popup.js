@@ -4,6 +4,8 @@ class ProManager {
     this.isPro = false;
     this.userInfo = null;
     this.selectedUrls = new Set();
+    this.activeFilters = new Set();
+    this.allItems = [];
   }
 
   async checkStatus() {
@@ -109,6 +111,124 @@ class ProManager {
     a.click();
   }
 
+  applyQuickFilter(filterType) {
+    // Store all path items for filtering
+    this.allItems = Array.from(document.querySelectorAll('.path-item'));
+    
+    this.selectedUrls.clear();
+    
+    this.allItems.forEach(item => {
+      const url = item.dataset.url;
+      const path = item.dataset.path;
+      const statusEl = item.querySelector('.status-pill');
+      const status = statusEl ? statusEl.textContent.trim() : '';
+      let shouldSelect = false;
+      
+      switch(filterType) {
+        case 'status-200':
+          shouldSelect = status === '200';
+          break;
+        case 'status-404':
+          shouldSelect = status === '404';
+          break;
+        case 'status-301':
+          shouldSelect = status === '301' || status === '302';
+          break;
+        case 'status-500':
+          shouldSelect = status.startsWith('5');
+          break;
+        case 'has-params':
+          shouldSelect = url.includes('?');
+          break;
+        case 'is-page':
+          shouldSelect = !url.match(/\.(css|js|jpg|jpeg|png|gif|svg|pdf|doc|docx|xls|xlsx|zip|xml|json)$/i);
+          break;
+        case 'is-image':
+          shouldSelect = url.match(/\.(jpg|jpeg|png|gif|svg|webp|ico)$/i);
+          break;
+        case 'is-script':
+          shouldSelect = url.match(/\.(js|ts|jsx|tsx)$/i);
+          break;
+        case 'is-style':
+          shouldSelect = url.match(/\.(css|scss|sass|less)$/i);
+          break;
+        case 'is-doc':
+          shouldSelect = url.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv)$/i);
+          break;
+      }
+      
+      const checkbox = item.querySelector('.bulk-checkbox');
+      if (checkbox) {
+        checkbox.checked = shouldSelect;
+        if (shouldSelect) {
+          this.selectedUrls.add(url);
+        }
+      }
+    });
+    
+    this.updateSelectedCount();
+  }
+  
+  applyAdvancedFilters() {
+    const depthFilter = document.getElementById('depthFilter').value;
+    const contentFilter = document.getElementById('contentFilter').value;
+    const patternFilter = document.getElementById('patternFilter').value;
+    
+    this.allItems = Array.from(document.querySelectorAll('.path-item'));
+    
+    this.allItems.forEach(item => {
+      const url = item.dataset.url;
+      const path = item.dataset.path || '';
+      let shouldSelect = true;
+      
+      // Depth filter
+      if (depthFilter) {
+        const depth = path.split('/').filter(Boolean).length;
+        if (depthFilter === '4+') {
+          shouldSelect = shouldSelect && depth >= 4;
+        } else {
+          shouldSelect = shouldSelect && depth === parseInt(depthFilter);
+        }
+      }
+      
+      // Content type filter
+      if (contentFilter && shouldSelect) {
+        switch(contentFilter) {
+          case 'html':
+            shouldSelect = !url.match(/\.[a-z]{2,4}$/i) || url.match(/\.html?$/i);
+            break;
+          case 'xml':
+            shouldSelect = url.match(/\.xml$/i);
+            break;
+          case 'json':
+            shouldSelect = url.match(/\.(json|api)$/i);
+            break;
+          case 'media':
+            shouldSelect = url.match(/\.(jpg|jpeg|png|gif|svg|mp4|webm|mp3)$/i);
+            break;
+          case 'assets':
+            shouldSelect = url.match(/\.(css|js|scss|less)$/i);
+            break;
+        }
+      }
+      
+      // Pattern filter
+      if (patternFilter && shouldSelect) {
+        const pattern = patternFilter.replace(/\*/g, '.*');
+        const regex = new RegExp(pattern, 'i');
+        shouldSelect = regex.test(url);
+      }
+      
+      const checkbox = item.querySelector('.bulk-checkbox');
+      if (checkbox && shouldSelect) {
+        checkbox.checked = true;
+        this.selectedUrls.add(url);
+      }
+    });
+    
+    this.updateSelectedCount();
+  }
+  
   showUpgradePrompt() {
     const modal = document.createElement('div');
     modal.className = 'upgrade-modal';
@@ -634,6 +754,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const refreshBtn = document.getElementById("refresh-btn");
   let allPaths = [];
   let currentDomain = "";
+  let bulkModeActive = false; // Move to higher scope
 
   // Check Pro status
   await proManager.checkStatus();
@@ -671,7 +792,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Add Try Bulk Export button handler (toggle functionality)
   const tryBulkExportBtn = document.getElementById('try-bulk-export');
-  let bulkModeActive = false;
   
   if (tryBulkExportBtn) {
     tryBulkExportBtn.addEventListener('click', () => {
@@ -679,11 +799,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Toggle bulk mode for Pro users
         bulkModeActive = !bulkModeActive;
         const bulkActions = document.getElementById('bulkActions');
+        const regularExportBtns = [exportCsvBtn, exportJsonBtn];
         
         if (bulkModeActive) {
           // Enable bulk selection mode
           proManager.enableProFeatures();
           if (bulkActions) bulkActions.style.display = 'flex';
+          
+          // Add bulk mode class to body for extended height
+          document.body.classList.add('bulk-mode-active');
+          
+          // Hide regular export buttons
+          regularExportBtns.forEach(btn => {
+            if (btn) btn.style.display = 'none';
+          });
           
           // Update button appearance
           tryBulkExportBtn.classList.add('active');
@@ -697,14 +826,25 @@ document.addEventListener("DOMContentLoaded", async () => {
           // Disable bulk selection mode
           if (bulkActions) bulkActions.style.display = 'none';
           
+          // Remove bulk mode class from body
+          document.body.classList.remove('bulk-mode-active');
+          
+          // Show regular export buttons
+          regularExportBtns.forEach(btn => {
+            if (btn) btn.style.display = '';
+          });
+          
           // Remove checkboxes
           document.querySelectorAll('.bulk-checkbox').forEach(cb => {
             cb.remove();
           });
           
-          // Clear selections
+          // Clear selections and filters
           proManager.selectedUrls.clear();
           proManager.updateSelectedCount();
+          document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.classList.remove('active');
+          });
           
           // Update button appearance
           tryBulkExportBtn.classList.remove('active');
@@ -1086,6 +1226,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         section.style.display = "block";
       });
       noResults.style.display = "none";
+      
+      // Re-add checkboxes if in bulk mode
+      if (bulkModeActive && proManager.isPro) {
+        proManager.enableProFeatures();
+      }
       return;
     }
 
@@ -1162,6 +1307,51 @@ document.addEventListener("DOMContentLoaded", async () => {
       proManager.bulkExport('json');
     });
   }
+  
+  // Add filter chip handlers
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      if (!proManager.isPro) {
+        proManager.showUpgradePrompt();
+        return;
+      }
+      
+      const filterType = e.target.dataset.filter;
+      
+      // Toggle active state
+      if (chip.classList.contains('active')) {
+        chip.classList.remove('active');
+        // Clear selections
+        document.querySelectorAll('.bulk-checkbox').forEach(cb => {
+          cb.checked = false;
+        });
+        proManager.selectedUrls.clear();
+      } else {
+        // Remove active from other chips
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        // Apply the filter
+        proManager.applyQuickFilter(filterType);
+      }
+    });
+  });
+  
+  // Add advanced filter handlers
+  const depthFilter = document.getElementById('depthFilter');
+  const contentFilter = document.getElementById('contentFilter');
+  const patternFilter = document.getElementById('patternFilter');
+  
+  [depthFilter, contentFilter, patternFilter].forEach(filter => {
+    if (filter) {
+      filter.addEventListener('change', () => {
+        if (!proManager.isPro) {
+          proManager.showUpgradePrompt();
+          return;
+        }
+        proManager.applyAdvancedFilters();
+      });
+    }
+  });
   
   // Add refresh button handler
   if (refreshBtn) {
@@ -1454,10 +1644,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Show export buttons once paths are loaded
     exportContainer.classList.add("visible");
     
-    // Enable Pro features if user is Pro
-    if (proManager.isPro) {
-      proManager.enableProFeatures();
-    }
+    // Don't auto-enable bulk mode, wait for user to click bulk export button
   }
 
   try {

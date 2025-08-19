@@ -36,6 +36,11 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        transition: height 0.3s ease;
+      }
+      
+      body.bulk-mode-active {
+        height: 700px; /* Extend height by ~17% for bulk mode */
       }
 
       /* Header */
@@ -665,12 +670,16 @@
 
       /* Bulk Actions (Pro Feature) */
       .bulk-actions {
-        padding: 12px;
+        padding: 10px;
         background: linear-gradient(135deg, var(--accent-color) 0%, #4a7fff 100%);
         border-bottom: 1px solid var(--border-color);
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
+      }
+      
+      body.light-theme .bulk-actions {
+        background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
       }
 
       .bulk-toolbar {
@@ -693,12 +702,28 @@
       .bulk-btn:hover {
         background: rgba(255, 255, 255, 0.2);
       }
+      
+      /* Light mode bulk buttons */
+      body.light-theme .bulk-btn {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+      }
+      
+      body.light-theme .bulk-btn:hover {
+        background: rgba(59, 130, 246, 0.2);
+        border-color: rgba(59, 130, 246, 0.5);
+      }
 
       .selected-count {
         margin-left: auto;
         color: white;
         font-size: 12px;
         font-weight: 500;
+      }
+      
+      body.light-theme .selected-count {
+        color: var(--text-primary);
       }
 
       .bulk-export-btns {
@@ -708,30 +733,224 @@
 
       .bulk-export-btn {
         flex: 1;
-        padding: 8px;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 6px;
-        background: rgba(255, 255, 255, 0.95);
-        color: var(--accent-color);
-        border: none;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 500;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 6px;
-        transition: all 0.2s;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .bulk-export-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+      
+      /* Light mode bulk export buttons */
+      body.light-theme .bulk-export-btn {
         background: white;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        color: var(--text-muted);
+        border: 1px solid var(--border-color);
+      }
+      
+      body.light-theme .bulk-export-btn:hover {
+        background: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.5);
+        color: #2563eb;
       }
 
       .bulk-checkbox {
         margin-right: 8px;
         cursor: pointer;
+      }
+      
+      /* Bulk Filters */
+      .bulk-filters {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      body.light-theme .bulk-filters {
+        border-top-color: rgba(0, 0, 0, 0.1);
+      }
+      
+      .filter-group {
+        margin-bottom: 8px;
+      }
+      
+      .filter-label {
+        display: block;
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      body.light-theme .filter-label {
+        color: var(--text-muted);
+      }
+      
+      .filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      
+      .filter-chip {
+        padding: 2px 6px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        font-size: 9px;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      
+      .filter-chip:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.4);
+      }
+      
+      .filter-chip.active {
+        background: white;
+        color: var(--accent-color);
+        border-color: white;
+      }
+      
+      body.light-theme .filter-chip {
+        background: white;
+        color: var(--text-muted);
+        border: 1px solid var(--border-color);
+      }
+      
+      body.light-theme .filter-chip:hover {
+        background: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.5);
+        color: #2563eb;
+      }
+      
+      body.light-theme .filter-chip.active {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+      }
+      
+      /* Advanced Filters */
+      .advanced-filters {
+        margin-top: 12px;
+      }
+      
+      .filter-toggle {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+        padding: 4px 0;
+        list-style: none;
+      }
+      
+      .filter-toggle::-webkit-details-marker {
+        display: none;
+      }
+      
+      body.light-theme .filter-toggle {
+        color: var(--text-muted);
+      }
+      
+      .filter-content {
+        margin-top: 8px;
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 6px;
+      }
+      
+      body.light-theme .filter-content {
+        background: rgba(0, 0, 0, 0.05);
+      }
+      
+      .filter-row {
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .filter-row:last-child {
+        margin-bottom: 0;
+      }
+      
+      .filter-row .filter-label {
+        margin: 0;
+        min-width: 80px;
+        font-size: 10px;
+      }
+      
+      .filter-select,
+      .filter-input {
+        flex: 1;
+        padding: 4px 8px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        font-size: 11px;
+      }
+      
+      .filter-select option {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+      }
+      
+      body.light-theme .filter-select,
+      body.light-theme .filter-input {
+        background: white;
+        color: var(--text-primary);
+        border-color: var(--border-color);
+      }
+      
+      .filter-checkboxes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        flex: 1;
+      }
+      
+      .filter-checkboxes label {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+      }
+      
+      body.light-theme .filter-checkboxes label {
+        color: var(--text-muted);
+      }
+      
+      .filter-checkboxes input[type="checkbox"] {
+        cursor: pointer;
+      }
+      
+      .icon-xs {
+        width: 12px;
+        height: 12px;
       }
 
       /* Free/Paid Status Pill (header) */
@@ -1577,6 +1796,80 @@
         <button id="deselectAll" class="bulk-btn">Deselect None</button>
         <span class="selected-count">0 selected</span>
       </div>
+      
+      <!-- Advanced Filters -->
+      <div class="bulk-filters">
+        <!-- Quick Filters -->
+        <div class="filter-group">
+          <label class="filter-label">Quick Select:</label>
+          <div class="filter-chips">
+            <button class="filter-chip" data-filter="status-200">✓ 200</button>
+            <button class="filter-chip" data-filter="status-404">⚠ 404</button>
+            <button class="filter-chip" data-filter="status-301">↗ 301</button>
+            <button class="filter-chip" data-filter="status-500">✕ 5xx</button>
+            <button class="filter-chip" data-filter="has-params">? Params</button>
+            <button class="filter-chip" data-filter="is-page">📄 Pages</button>
+            <button class="filter-chip" data-filter="is-image">🖼 Images</button>
+            <button class="filter-chip" data-filter="is-script">📜 Scripts</button>
+            <button class="filter-chip" data-filter="is-style">🎨 Styles</button>
+            <button class="filter-chip" data-filter="is-doc">📑 Docs</button>
+          </div>
+        </div>
+        
+        <!-- Advanced Filters -->
+        <details class="advanced-filters">
+          <summary class="filter-toggle">
+            <svg class="icon-xs" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z"/>
+            </svg>
+            Advanced Filters
+          </summary>
+          <div class="filter-content">
+            <!-- URL Depth -->
+            <div class="filter-row">
+              <label class="filter-label">URL Depth:</label>
+              <select id="depthFilter" class="filter-select">
+                <option value="">All Depths</option>
+                <option value="1">Level 1 (/page)</option>
+                <option value="2">Level 2 (/section/page)</option>
+                <option value="3">Level 3 (/section/sub/page)</option>
+                <option value="4+">Level 4+</option>
+              </select>
+            </div>
+            
+            <!-- Content Type -->
+            <div class="filter-row">
+              <label class="filter-label">Content Type:</label>
+              <select id="contentFilter" class="filter-select">
+                <option value="">All Types</option>
+                <option value="html">HTML Pages</option>
+                <option value="xml">XML (Sitemaps)</option>
+                <option value="json">JSON/API</option>
+                <option value="media">Media Files</option>
+                <option value="assets">CSS/JS Assets</option>
+              </select>
+            </div>
+            
+            <!-- URL Pattern -->
+            <div class="filter-row">
+              <label class="filter-label">URL Pattern:</label>
+              <input type="text" id="patternFilter" class="filter-input" placeholder="e.g., /blog/*, *.pdf">
+            </div>
+            
+            <!-- SEO Criteria -->
+            <div class="filter-row">
+              <label class="filter-label">SEO Checks:</label>
+              <div class="filter-checkboxes">
+                <label><input type="checkbox" id="noIndex"> Exclude noindex</label>
+                <label><input type="checkbox" id="canonical"> Has canonical</label>
+                <label><input type="checkbox" id="sitemap"> In sitemap</label>
+                <label><input type="checkbox" id="orphaned"> Orphaned pages</label>
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+      
       <div class="bulk-export-btns">
         <button id="bulkExportCsv" class="bulk-export-btn">
           <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
