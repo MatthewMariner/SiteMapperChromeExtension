@@ -1,6 +1,6 @@
 # Site Structure Navigator Extension
 
-A premium Chrome extension that automatically discovers and maps website structure using multiple sources. Features a modern Bitwarden-inspired dark UI with advanced visualization capabilities.
+A premium Chrome extension that automatically discovers and maps website structure using multiple sources. Features a modern Figma-inspired UI with dark/light themes, advanced SEO analysis tools, and comprehensive site mapping capabilities.
 
 ## ✨ Features
 
@@ -12,13 +12,15 @@ A premium Chrome extension that automatically discovers and maps website structu
 - **Common path checking** - Tests standard URL patterns
 - **Meta tag analysis** - Extracts navigation hints from page metadata
 
-### 🎨 **Modern Dark UI (2025 Design)**
-- **Bitwarden-inspired interface** - Professional dark theme with blue accents
+### 🎨 **Modern UI with Theme Support (2025 Design)**
+- **Figma-inspired interface** - Professional design with blue accents
+- **Dark/Light theme switcher** - Automatic theme detection with manual override
 - **Site favicons** - Displays website icons for visual recognition
 - **Badge counter** - Shows discovered page count on extension icon
 - **Smooth animations** - Cubic-bezier transitions throughout
 - **Auto-focus search** - Instant search capability on popup open
 - **Responsive layout** - Optimized 400x600px design
+- **Settings panel** - Customizable preferences with persistent storage
 
 ### 🌳 **Visual Sitemap Tree View**
 - **Interactive tree visualization** - Parent-child relationship display
@@ -27,6 +29,8 @@ A premium Chrome extension that automatically discovers and maps website structu
 - **Node counters** - Shows child count at each level
 - **Favicon integration** - Root node displays site favicon
 - **One-click navigation** - Open any page from the tree
+- **Response status indicators** - Visual badges for 200/301/404 status codes
+- **Auto status checking** - Configurable automatic HTTP status verification
 
 ### 💾 **Smart Caching & Persistence**
 - **Permanent cache storage** - Discovered paths persist until manually cleared
@@ -41,6 +45,23 @@ A premium Chrome extension that automatically discovers and maps website structu
 - **Real-time filtering** - Instant results with debounced input
 - **Filter persistence** - Export respects active search filters
 
+### 🔍 **SEO Analysis Tools**
+- **Comprehensive page analysis** - Extract key SEO metrics from any page
+- **Heading structure analysis** - H1, H2, H3 hierarchy and content
+- **Meta data extraction** - Title tags and meta descriptions
+- **Content metrics** - Word count and content analysis
+- **Image audit** - Total images and alt text coverage
+- **Link analysis** - Internal vs external link counts
+- **Export SEO data** - JSON format for further analysis
+- **One-click copy** - Quick clipboard access to SEO metrics
+
+### ⚙️ **Customizable Settings**
+- **File type filtering** - Hide/show XML files and other file types
+- **Auto status checking** - Toggle automatic HTTP status verification
+- **Theme preferences** - Choose between dark and light modes
+- **Persistent storage** - Settings saved across sessions
+- **Figma-style toggles** - Beautiful animated switch controls
+
 ### 📊 **Export Capabilities**
 - **CSV Export** - Perfect for spreadsheet analysis and SEO audits
   - URL, Path, Depth, Timestamp columns
@@ -54,6 +75,8 @@ A premium Chrome extension that automatically discovers and maps website structu
 - **Click to open** - Single click opens in new tab
 - **Middle-click support** - Open in background tab
 - **Copy URL button** - One-click copy for any discovered path
+- **3-dot menu** - Additional actions including SEO analysis
+- **View source** - Quick access to page source code
 - **Keyboard friendly** - Full keyboard navigation support
 
 ### 🛡️ **Security & Performance**
@@ -167,8 +190,8 @@ npm run generate-icons  # Generate icons from SVG source
 
 The extension requires minimal permissions:
 - **activeTab** - Access current tab for scanning
-- **scripting** - Inject scripts to analyze page links
-- **storage** - Cache discovered paths
+- **scripting** - Inject scripts to analyze page links and SEO metrics
+- **storage** - Cache discovered paths and user settings
 - **host_permissions** - Fetch sitemaps and robots.txt
 
 ## 🐛 Troubleshooting
@@ -195,20 +218,31 @@ MIT License - Free for personal and commercial use
 ## 🙏 Acknowledgments
 
 This extension draws inspiration from:
-- Bitwarden's elegant dark UI design
+- Figma's modern UI/UX design patterns
 - Professional SEO audit tools
 - Modern Chrome extension architecture
 - Web accessibility standards
 
-## 📈 Future Roadmap
+## 📈 Recent Updates (v1.1.0)
+
+- ✅ SEO Analysis Tool - Comprehensive page metrics extraction
+- ✅ Dark/Light Theme Support - Full theme switching capability
+- ✅ Response Status Indicators - Visual 200/301/404 badges
+- ✅ Settings Panel - Customizable preferences with Figma-style UI
+- ✅ File Type Filtering - Hide/show XML and other file types
+- ✅ 3-Dot Actions Menu - Quick access to SEO tools and utilities
+- ✅ Auto Status Checking - Configurable HTTP status verification
+
+## 🚧 Future Roadmap
 
 - [ ] Bulk URL operations
-- [ ] Response status indicators (200/404)
 - [ ] Advanced filtering with regex
 - [ ] Page metadata preview on hover
 - [ ] Change detection between scans
 - [ ] Cloud sync for settings
 - [ ] Export scheduling
+- [ ] Broken link checker
+- [ ] Sitemap generator
 
 ## 💬 Support
 
@@ -222,6 +256,6 @@ For issues and feature requests:
 
 ---
 
-**Version:** 1.0.1  
-**Last Updated:** 2025  
+**Version:** 1.1.0  
+**Last Updated:** January 2025  
 **Compatibility:** Chrome 88+, Edge 88+, Brave, Opera

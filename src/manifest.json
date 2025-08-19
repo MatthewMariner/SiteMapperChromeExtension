@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Site Structure Navigator",
-  "version": "1.0.2",
-  "version_name": "1.0.2",
-  "description": "Discover and navigate website structure with smart sitemap detection, visual tree view, and export tools for SEO audits",
+  "version": "1.1.0",
+  "version_name": "1.1.0",
+  "description": "Complete site mapping with SEO analysis, status checking, theme support, and export tools for comprehensive website audits",
   "author": "Mariner Digital Agency",
   "homepage_url": "https://github.com/MatthewMariner/SiteMapperChromeExtension",
   "icons": {
