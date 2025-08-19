@@ -340,7 +340,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function getVisiblePaths() {
     return Array.from(document.querySelectorAll(".nav-item"))
       .filter(item => !item.classList.contains("hidden"))
-      .map(item => item.textContent);
+      .map(item => item.querySelector(".nav-item-path").textContent);
   }
 
   function downloadFile(content, filename, type) {
@@ -406,7 +406,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Filter items
     document.querySelectorAll(".nav-item").forEach((item) => {
-      const path = item.textContent;
+      const path = item.querySelector(".nav-item-path").textContent;
       const matches = filter.matches(path);
       item.classList.toggle("hidden", !matches);
       if (matches) hasVisibleItems = true;
@@ -485,23 +485,68 @@ document.addEventListener("DOMContentLoaded", async () => {
         sectionPaths.forEach((path) => {
           const div = document.createElement("div");
           div.className = "nav-item";
-          div.textContent = path;
-          div.onclick = () => {
+          
+          // Path element
+          const pathEl = document.createElement("div");
+          pathEl.className = "nav-item-path";
+          pathEl.textContent = path;
+          pathEl.onclick = () => {
             chrome.tabs.create({ url: baseUrl + path });
           };
-          div.onmousedown = (e) => {
+          pathEl.onmousedown = (e) => {
             if (e.button === 1) {
               e.preventDefault();
               chrome.tabs.create({ url: baseUrl + path, active: false });
               return false;
             }
           };
-          div.onmouseup = (e) => {
+          pathEl.onmouseup = (e) => {
             if (e.button === 1) {
               e.preventDefault();
               return false;
             }
           };
+          
+          // Actions container
+          const actions = document.createElement("div");
+          actions.className = "nav-item-actions";
+          
+          // Copy button
+          const copyBtn = document.createElement("button");
+          copyBtn.className = "copy-btn";
+          copyBtn.title = "Copy URL";
+          copyBtn.innerHTML = `
+            <svg class="copy-icon" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+            </svg>
+          `;
+          copyBtn.onclick = async (e) => {
+            e.stopPropagation();
+            const fullUrl = baseUrl + path;
+            try {
+              await navigator.clipboard.writeText(fullUrl);
+              copyBtn.classList.add("copied");
+              copyBtn.innerHTML = `
+                <svg class="copy-icon" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+              `;
+              setTimeout(() => {
+                copyBtn.classList.remove("copied");
+                copyBtn.innerHTML = `
+                  <svg class="copy-icon" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                  </svg>
+                `;
+              }, 2000);
+            } catch (err) {
+              console.error("Failed to copy:", err);
+            }
+          };
+          
+          actions.appendChild(copyBtn);
+          div.appendChild(pathEl);
+          div.appendChild(actions);
           section.appendChild(div);
         });
 
