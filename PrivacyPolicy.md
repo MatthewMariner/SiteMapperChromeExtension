@@ -1,73 +1,111 @@
-# Privacy Policy
+# Privacy Policy - Site Structure Navigator
 
-## Site Structure Navigator Chrome Extension
+**Last Updated: January 2025**
 
-Last updated: August 2025
+## Overview
 
-### Overview
+Site Structure Navigator ("the Extension") is committed to protecting your privacy. This privacy policy explains what information we collect, how we use it, and your rights regarding your data.
 
-Site Structure Navigator is committed to protecting your privacy. This privacy policy explains our data collection, use, and disclosure practices for the Site Structure Navigator Chrome extension.
+## Data Collection
 
-### Data Collection and Use
+### What We Collect
 
-The Site Structure Navigator extension:
+The Extension collects and stores the following data **locally on your device only**:
 
-- Does not collect any personal information
-- Does not track your browsing history across sites
-- Does not transmit any data to external servers
-- Does not use cookies or tracking mechanisms
-- Does not share data with third parties
-- Processes all information locally within your browser
+1. **Website Structure Data**
+   - URLs discovered from the websites you visit
+   - Site hierarchy and structure information
+   - Timestamps of when sites were scanned
+   - Cached sitemap and robots.txt content
 
-### Website Access
+2. **Website Content Analysis**
+   - Links found on webpages
+   - Navigation structure elements
+   - Meta tag information related to site navigation
 
-The extension requires access to website data solely to:
+### What We DO NOT Collect
 
-1. Analyze site structure and navigation
-2. Discover available pages and endpoints
-3. Create a visual sitemap for navigation purposes
-4. Display website favicons for visual recognition
+The Extension does **NOT** collect, store, or transmit:
+- Personal information (name, email, address, etc.)
+- Browsing history beyond the current active tab
+- Passwords or authentication credentials
+- Financial information
+- Health information
+- Location data or IP addresses
+- Keystrokes or mouse movements
+- Form data or user inputs
+- Cookies or session data
 
-All processing is done locally in your browser, and no information is transmitted externally.
+## Data Usage
 
-### Required Permissions
+All collected data is:
+- **Stored locally** on your device using Chrome's storage API
+- **Never transmitted** to external servers
+- **Never sold or shared** with third parties
+- **Used solely** for the extension's core functionality of mapping website structures
+- **Deleted** when you clear the cache or uninstall the extension
 
-The extension requires certain permissions to function:
+## Data Storage
 
-- `activeTab`: Required to analyze the current webpage's structure
-- `scripting`: Needed to detect and process navigation elements
-- `storage`: Used to cache discovered site structures locally
-- `host_permissions`: Required to access site resources like robots.txt and sitemaps
+- All data is stored locally using Chrome's storage.local API
+- Data is segregated per domain (each website has its own cached data)
+- You can clear stored data at any time using the refresh button in the extension
+- Uninstalling the extension removes all stored data
 
-These permissions are used exclusively for site structure discovery and navigation purposes.
+## Permissions Usage
 
-### Data Storage
+The Extension requires the following permissions:
 
-The extension:
+- **activeTab**: To analyze the structure of the currently active website
+- **scripting**: To inject scripts that discover page links and navigation elements
+- **storage**: To cache discovered site structures locally on your device
+- **host_permissions**: To fetch robots.txt and sitemap files from websites
 
-- Caches discovered site structures locally using Chrome's storage API
-- Stores only URL paths and structure information (no personal data)
-- Keeps cached data until manually cleared by the user
-- All data remains local to your browser
-- No data is synced or transmitted to any servers
+These permissions are used solely for the stated purpose of discovering and displaying website structure.
 
-### Third-Party Services
+## Third-Party Services
 
-The extension uses:
+This Extension:
+- Does **NOT** use any analytics services
+- Does **NOT** connect to any third-party servers
+- Does **NOT** include any tracking mechanisms
+- Does **NOT** use remote code execution
 
-- Google's Favicon Service (https://www.google.com/s2/favicons) to display website icons
-- This service only receives the domain name, no personal information or browsing activity
+## User Rights
 
-No other third-party services are used, and no tracking or analytics tools are included.
+You have the right to:
+- Clear all cached data at any time (using the refresh button)
+- Export your discovered data (CSV/JSON export features)
+- Uninstall the extension to remove all data
+- Review the source code (available on GitHub)
 
-### Updates
+## Children's Privacy
 
-We may update this privacy policy from time to time. Any changes will be reflected in the "Last updated" date at the top of the policy.
+This Extension does not knowingly collect any information from children under 13 years of age.
 
-### Contact
+## Changes to This Policy
 
-If you have any questions about this privacy policy or the extension's privacy practices, please open an issue in our GitHub repository.
+We may update this privacy policy from time to time. Any changes will be reflected in the "Last Updated" date above.
 
-### Source Code
+## Open Source
 
-The extension is open source, and the complete source code is available for review in our GitHub repository.
+This Extension is open source. You can review the complete source code at:
+https://github.com/MatthewMariner/SiteMapperChromeExtension
+
+## Contact
+
+For questions about this privacy policy or the Extension, please:
+- Create an issue on our GitHub repository
+- Visit: https://marinerdigitalagency.com/
+
+## Compliance
+
+This Extension complies with:
+- Chrome Web Store Developer Program Policies
+- Chrome Extension Manifest V3 requirements
+- General Data Protection Regulation (GDPR) principles
+- California Consumer Privacy Act (CCPA) requirements
+
+## Summary
+
+**Your privacy is our priority.** Site Structure Navigator operates entirely locally on your device. We don't collect personal data, we don't track you, and we don't share or sell any information. The extension simply helps you discover and navigate website structures, with all data remaining under your control.

@@ -8,7 +8,9 @@
     "watch": "webpack --watch --config webpack.config.js",
     "clean": "rimraf dist",
     "zip": "bestzip extension.zip dist/*",
-    "generate-icons": "node generate-icons.js"
+    "generate-icons": "node utils/generate-icons.js",
+    "prepare-screenshots": "node utils/prepare-screenshots.js",
+    "prepare-promo": "node utils/prepare-promo-tiles.js"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
