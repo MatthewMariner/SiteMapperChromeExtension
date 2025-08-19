@@ -13,7 +13,7 @@
   },
   "permissions": ["activeTab", "scripting", "storage"],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'; connect-src https://extensionpay.com"
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https://extensionpay.com https: http:"
   },
   "host_permissions": ["<all_urls>"],
   "content_scripts": [
