@@ -35,7 +35,6 @@ The extension requires certain permissions to function:
 
 - `activeTab`: Required to analyze the current webpage's structure
 - `scripting`: Needed to detect and process navigation elements
-- `webNavigation`: Used to track page loads for badge counter updates
 - `host permissions`: Required to access site resources like robots.txt and sitemaps
 
 These permissions are used exclusively for site structure discovery and navigation purposes.

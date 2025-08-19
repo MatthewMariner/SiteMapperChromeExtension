@@ -1,6 +1,6 @@
 {
   "name": "site-structure-navigator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Chrome extension to discover and navigate site structures",
   "private": true,
   "scripts": {

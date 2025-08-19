@@ -426,6 +426,19 @@ document.addEventListener("DOMContentLoaded", async () => {
           div.onclick = () => {
             chrome.tabs.create({ url: baseUrl + path });
           };
+          div.onmousedown = (e) => {
+            if (e.button === 1) {
+              e.preventDefault();
+              chrome.tabs.create({ url: baseUrl + path, active: false });
+              return false;
+            }
+          };
+          div.onmouseup = (e) => {
+            if (e.button === 1) {
+              e.preventDefault();
+              return false;
+            }
+          };
           section.appendChild(div);
         });
 
