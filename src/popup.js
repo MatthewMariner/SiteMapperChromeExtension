@@ -91,9 +91,6 @@ class SiteMapper {
       .map(([path, status]) => ({ path, status }))
       .sort((a, b) => a.path.localeCompare(b.path));
 
-    // Batch check status codes for paths without status
-    await this.batchCheckStatuses(pathsArray);
-
     // Get current tab ID and update badge
     try {
       const [tab] = await chrome.tabs.query({
@@ -114,27 +111,14 @@ class SiteMapper {
     return pathsArray;
   }
 
-  async batchCheckStatuses(pathsArray, batchSize = 5, maxChecks = 50) {
+  async batchCheckStatuses(pathsArray, batchSize = 5, maxChecks = 50, onStatusUpdate = null) {
     // Limit the number of status checks for performance
     const pathsToCheck = pathsArray.filter(item => !item.status).slice(0, maxChecks);
     
     if (pathsToCheck.length === 0) return;
     
-    // Update loading status
-    const loadingStatus = document.getElementById('loading-status');
-    const loadingText = document.getElementById('loading-text');
-    
-    if (loadingText) {
-      loadingText.textContent = 'Checking page statuses...';
-    }
-    
     for (let i = 0; i < pathsToCheck.length; i += batchSize) {
       const batch = pathsToCheck.slice(i, i + batchSize);
-      
-      if (loadingStatus) {
-        const progress = Math.round((i / pathsToCheck.length) * 100);
-        loadingStatus.textContent = `Checking statuses... ${progress}%`;
-      }
       
       const promises = batch.map(async (item) => {
         try {
@@ -147,16 +131,20 @@ class SiteMapper {
           if (response.redirected) {
             item.status = 301; // Assume redirect
           }
+          
+          // Callback to update UI dynamically
+          if (onStatusUpdate) {
+            onStatusUpdate(item.path, item.status);
+          }
         } catch (error) {
           // Default to unknown status
           item.status = null;
+          if (onStatusUpdate) {
+            onStatusUpdate(item.path, null);
+          }
         }
       });
       await Promise.all(promises);
-    }
-    
-    if (loadingText) {
-      loadingText.textContent = 'Loading complete';
     }
   }
 
@@ -430,13 +418,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   function buildTreeStructure(pathsData) {
     const root = { name: 'Home', path: '/', children: {}, count: 0 };
     
-    // Handle both old and new data formats
-    const pathItems = pathsData.map ? 
-      pathsData : 
-      pathsData.map(item => typeof item === 'string' ? { path: item } : item);
+    // Normalize the data structure
+    let pathItems = [];
+    if (Array.isArray(pathsData)) {
+      pathItems = pathsData.map(item => {
+        if (typeof item === 'string') {
+          return { path: item };
+        } else if (item && typeof item === 'object') {
+          return { path: item.path || '' };
+        }
+        return { path: '' };
+      }).filter(item => item.path); // Filter out any empty paths
+    }
     
     pathItems.forEach(item => {
-      const path = item.path || item;
+      const path = item.path || '';
+      if (!path) return; // Skip empty paths
+      
       const segments = path.split('/').filter(Boolean);
       let current = root;
       let currentPath = '';
@@ -634,8 +632,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     let csv = "URL,Path,Status,Depth,Timestamp\n";
     items.forEach(item => {
-      const path = item.path || item;
-      const status = item.status || '';
+      const path = (item && item.path) ? item.path : (typeof item === 'string' ? item : '');
+      if (!path) return; // Skip empty paths
+      const status = (item && item.status) || '';
       const fullUrl = `${currentDomain}${path}`;
       const depth = path.split("/").filter(Boolean).length;
       csv += `"${fullUrl}","${path}","${status}",${depth},"${timestamp}"\n`;
@@ -649,20 +648,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     const timestamp = new Date().toISOString();
     const domain = currentDomain.replace(/[^a-z0-9]/gi, "_");
     
+    const pages = [];
+    items.forEach(item => {
+      const path = (item && item.path) ? item.path : (typeof item === 'string' ? item : '');
+      if (!path) return; // Skip empty paths
+      const status = (item && item.status) || null;
+      pages.push({
+        path,
+        url: `${currentDomain}${path}`,
+        status,
+        depth: path.split("/").filter(Boolean).length
+      });
+    });
+    
     const data = {
       domain: currentDomain,
       timestamp,
-      totalPages: items.length,
-      pages: items.map(item => {
-        const path = item.path || item;
-        const status = item.status || null;
-        return {
-          path,
-          url: `${currentDomain}${path}`,
-          status,
-          depth: path.split("/").filter(Boolean).length
-        };
-      })
+      totalPages: pages.length,
+      pages
     };
     
     const json = JSON.stringify(data, null, 2);
@@ -736,20 +739,55 @@ document.addEventListener("DOMContentLoaded", async () => {
     return 'status-unknown';
   }
 
+  function updateStatusPill(path, status) {
+    // Find the nav item with this path
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+      if (item.dataset.path === path) {
+        const statusPill = item.querySelector('.status-pill');
+        if (statusPill) {
+          // Update the pill class and text
+          statusPill.className = `status-pill ${getStatusClass(status)}`;
+          statusPill.innerHTML = `
+            <span class="status-dot"></span>
+            <span>${status || '?'}</span>
+          `;
+        }
+      }
+    });
+  }
+
   function renderPaths(pathsData, baseUrl, faviconUrl) {
     // Clear existing content
     navMenu.innerHTML = "";
     
-    // Extract paths for grouping
-    const pathItems = pathsData.map ? 
-      pathsData : 
-      pathsData.map(item => typeof item === 'string' ? { path: item, status: null } : item);
+    // Normalize the data structure
+    let pathItems = [];
+    if (Array.isArray(pathsData)) {
+      pathItems = pathsData.map(item => {
+        if (typeof item === 'string') {
+          return { path: item, status: null };
+        } else if (item && typeof item === 'object') {
+          return { path: item.path || '', status: item.status || null };
+        }
+        return { path: '', status: null };
+      }).filter(item => item.path); // Filter out any empty paths
+    }
     
     // Group paths by source/section
     const sections = {
-      "Main Pages": pathItems.filter((p) => p.path.split("/").length === 2),
-      "Sub Pages": pathItems.filter((p) => p.path.split("/").length === 3),
-      "Deep Pages": pathItems.filter((p) => p.path.split("/").length > 3),
+      "Main Pages": pathItems.filter((p) => {
+        const path = p.path || '';
+        return path && path.split("/").length === 2;
+      }),
+      "Sub Pages": pathItems.filter((p) => {
+        const path = p.path || '';
+        return path && path.split("/").length === 3;
+      }),
+      "Deep Pages": pathItems.filter((p) => {
+        const path = p.path || '';
+        return path && path.split("/").length > 3;
+      }),
     };
 
     // Render sections with new design
@@ -942,6 +980,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       
       loading.style.display = "none";
       renderPaths(pathsData, baseUrl, faviconUrl);
+      
+      // Check statuses in the background after rendering
+      siteMapper.batchCheckStatuses(pathsData, 5, 50, (path, status) => {
+        updateStatusPill(path, status);
+        // Update the cached data with status
+        const item = pathsData.find(p => p.path === path);
+        if (item) {
+          item.status = status;
+        }
+      }).then(() => {
+        // Re-cache with status information
+        cachePaths(baseUrl, pathsData);
+      });
     }
   } catch (err) {
     const error = document.createElement("div");

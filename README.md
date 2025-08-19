@@ -223,5 +223,5 @@ For issues and feature requests:
 ---
 
 **Version:** 1.0.1  
-**Last Updated:** 2024  
+**Last Updated:** 2025  
 **Compatibility:** Chrome 88+, Edge 88+, Brave, Opera

@@ -67,9 +67,10 @@
         font-weight: 500;
         cursor: pointer;
         transition: background 0.2s;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 6px;
+        vertical-align: middle;
       }
 
       .header-btn:hover {
@@ -285,6 +286,18 @@
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         border: 1px solid transparent;
         white-space: nowrap;
+        min-width: 45px;
+        justify-content: center;
+      }
+      
+      .status-pill.loading {
+        animation: shimmer 1.5s infinite;
+      }
+      
+      @keyframes shimmer {
+        0% { opacity: 0.5; }
+        50% { opacity: 0.8; }
+        100% { opacity: 0.5; }
       }
 
       /* Success states (200-299) */
@@ -427,6 +440,14 @@
         font-size: 13px;
         cursor: pointer;
         transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+      }
+      
+      .export-btn svg {
+        vertical-align: middle;
       }
 
       .export-btn:hover {
@@ -663,11 +684,15 @@
       .icon {
         width: 18px;
         height: 18px;
+        display: inline-block;
+        vertical-align: middle;
       }
 
       .icon-sm {
         width: 14px;
         height: 14px;
+        display: inline-block;
+        vertical-align: middle;
       }
     </style>
   </head>
@@ -702,16 +727,16 @@
     <!-- Export Buttons -->
     <div id="export-container" class="export-container">
       <button id="export-csv" class="export-btn">
-        <svg class="icon-sm" style="display: inline; vertical-align: middle; margin-right: 4px;" fill="currentColor" viewBox="0 0 24 24">
+        <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
           <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
         </svg>
-        Export CSV
+        <span>Export CSV</span>
       </button>
       <button id="export-json" class="export-btn">
-        <svg class="icon-sm" style="display: inline; vertical-align: middle; margin-right: 4px;" fill="currentColor" viewBox="0 0 24 24">
+        <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
           <path d="M5,3H7V5H5V10A2,2 0 0,1 3,12A2,2 0 0,1 5,14V19H7V21H5C3.93,20.73 3,20.1 3,19V15A2,2 0 0,0 1,13H0V11H1A2,2 0 0,0 3,9V5A2,2 0 0,1 5,3M19,3A2,2 0 0,1 21,5V9A2,2 0 0,0 23,11H24V13H23A2,2 0 0,0 21,15V19A2,2 0 0,1 19,21H17V19H19V14A2,2 0 0,1 21,12A2,2 0 0,1 19,10V5H17V3H19Z"/>
         </svg>
-        Export JSON
+        <span>Export JSON</span>
       </button>
     </div>
 

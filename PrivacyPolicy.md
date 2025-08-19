@@ -2,7 +2,7 @@
 
 ## Site Structure Navigator Chrome Extension
 
-Last updated: January 2025
+Last updated: August 2025
 
 ### Overview
 
