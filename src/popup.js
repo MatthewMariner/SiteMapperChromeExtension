@@ -50,6 +50,23 @@ class ProManager {
   async openLoginPage() {
     chrome.runtime.sendMessage({ type: "OPEN_LOGIN_PAGE" });
   }
+  
+  async logout() {
+    try {
+      const response = await chrome.runtime.sendMessage({ type: "LOGOUT_USER" });
+      if (response.success) {
+        // Reset Pro status
+        this.isPro = false;
+        this.userInfo = null;
+        // Reload the page to update UI
+        window.location.reload();
+      }
+      return response.success;
+    } catch (error) {
+      console.error('Logout failed:', error);
+      return false;
+    }
+  }
 
   enableProFeatures() {
     // Add checkboxes to path items
@@ -814,7 +831,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   await proManager.checkStatus();
   const upgradeBtn = document.getElementById('upgrade-btn');
   const statusPill = document.getElementById('status-pill');
-  const logoutBtn = document.getElementById('logout-btn');
   
   if (proManager.isPro) {
     // Update status pill to PAID
@@ -840,16 +856,27 @@ document.addEventListener("DOMContentLoaded", async () => {
       searchInput.placeholder = 'Search paths (* wildcards, /regex/ for Pro regex)';
     }
     
-    // Show and configure logout button for Pro users
-    if (logoutBtn) {
-      logoutBtn.style.display = 'flex';
-      logoutBtn.innerHTML = `
-        <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-        </svg>
-        Logout
-      `;
-      logoutBtn.addEventListener('click', async () => {
+    // Note: Logout button is now in Settings tab only
+  } else {
+    // Keep FREE status pill (already set in HTML)
+    
+    // Add click handler to upgrade button
+    if (upgradeBtn) {
+      upgradeBtn.addEventListener('click', () => {
+        proManager.showUpgradePrompt();
+      });
+    }
+  }
+  
+  // Handle Settings tab Pro/Logout buttons
+  const settingsProBtn = document.getElementById('settings-pro-btn');
+  const settingsLogoutBtn = document.getElementById('logout-btn');
+  
+  if (proManager.isPro) {
+    // Show logout button for Pro users in Settings
+    if (settingsLogoutBtn) {
+      settingsLogoutBtn.style.display = 'flex';
+      settingsLogoutBtn.addEventListener('click', async () => {
         if (confirm('Are you sure you want to logout? This will clear your Pro status and cached data.')) {
           try {
             // Clear ExtensionPay session
@@ -867,19 +894,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
     }
+    // Hide Pro button for Pro users
+    if (settingsProBtn) {
+      settingsProBtn.style.display = 'none';
+    }
   } else {
-    // Keep FREE status pill (already set in HTML)
-    
-    // Add click handler to upgrade button
-    if (upgradeBtn) {
-      upgradeBtn.addEventListener('click', () => {
+    // Show Pro button for free users in Settings
+    if (settingsProBtn) {
+      settingsProBtn.style.display = 'flex';
+      settingsProBtn.innerHTML = `
+        <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M5,16L3,5L8.5,10L12,4L15.5,10L21,5L19,16H5M19,19C19,19.6 18.6,20 18,20H6C5.4,20 5,19.6 5,19V18H19V19Z"/>
+        </svg>
+        <span>PRO</span>
+      `;
+      settingsProBtn.addEventListener('click', () => {
         proManager.showUpgradePrompt();
       });
     }
-    
     // Hide logout button for free users
-    if (logoutBtn) {
-      logoutBtn.style.display = 'none';
+    if (settingsLogoutBtn) {
+      settingsLogoutBtn.style.display = 'none';
     }
   }
   
@@ -916,39 +951,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             <span>Hide Bulk Mode</span>
           `;
         } else {
-          // Disable bulk selection mode
-          if (bulkActions) bulkActions.style.display = 'none';
-          
-          // Remove bulk mode class from body
-          document.body.classList.remove('bulk-mode-active');
-          
-          // Show regular export buttons
-          regularExportBtns.forEach(btn => {
-            if (btn) btn.style.display = '';
-          });
-          
-          // Remove checkboxes
-          document.querySelectorAll('.bulk-checkbox').forEach(cb => {
-            cb.remove();
-          });
-          
-          // Clear selections and filters
-          proManager.selectedUrls.clear();
-          proManager.updateSelectedCount();
-          document.querySelectorAll('.filter-chip').forEach(chip => {
-            chip.classList.remove('active');
-          });
-          
-          // Update button appearance
-          tryBulkExportBtn.classList.remove('active');
-          tryBulkExportBtn.innerHTML = `
-            <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M9 3V4H4V6H5V19A2 2 0 0 0 7 21H17A2 2 0 0 0 19 19V6H20V4H15V3H9M7 6H17V19H7V6M9 8V17H11V8H9M13 8V17H15V8H13Z"/>
-            </svg>
-            <span>Bulk Export 
-              <span style="background: #ffd700; color: #333; padding: 1px 4px; border-radius: 3px; font-size: 9px; margin-left: 4px;">PRO</span>
-            </span>
-          `;
+          // Disable bulk selection mode using cleanup function
+          cleanupBulkMode();
         }
       } else {
         // Show upgrade prompt for free users
@@ -972,6 +976,55 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Store favicon URL globally
   let globalFaviconUrl = '';
 
+  // Function to clean up bulk mode
+  function cleanupBulkMode() {
+    if (bulkModeActive) {
+      bulkModeActive = false;
+      const bulkActions = document.getElementById('bulkActions');
+      const regularExportBtns = [exportCsvBtn, exportJsonBtn];
+      
+      // Hide bulk actions
+      if (bulkActions) bulkActions.style.display = 'none';
+      
+      // Remove bulk mode class from body
+      document.body.classList.remove('bulk-mode-active');
+      
+      // Show regular export buttons
+      regularExportBtns.forEach(btn => {
+        if (btn) btn.style.display = '';
+      });
+      
+      // Remove all checkboxes
+      document.querySelectorAll('.bulk-checkbox').forEach(cb => {
+        cb.remove();
+      });
+      
+      // Clear selections and filters
+      if (proManager) {
+        proManager.selectedUrls.clear();
+        proManager.updateSelectedCount();
+      }
+      
+      // Reset filter chips
+      document.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.classList.remove('active');
+      });
+      
+      // Reset bulk export button appearance
+      if (tryBulkExportBtn) {
+        tryBulkExportBtn.classList.remove('active');
+        tryBulkExportBtn.innerHTML = `
+          <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M9 3V4H4V6H5V19A2 2 0 0 0 7 21H17A2 2 0 0 0 19 19V6H20V4H15V3H9M7 6H17V19H7V6M9 8V17H11V8H9M13 8V17H15V8H13Z"/>
+          </svg>
+          <span>Bulk Export 
+            <span style="background: #ffd700; color: #333; padding: 1px 4px; border-radius: 3px; font-size: 9px; margin-left: 4px;">PRO</span>
+          </span>
+        `;
+      }
+    }
+  }
+
   // Tab switching
   const navTabs = document.querySelectorAll('.nav-tab');
   const viewContainers = document.querySelectorAll('.view-container');
@@ -979,6 +1032,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   navTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const targetView = tab.dataset.view;
+      
+      // Clean up bulk mode when switching tabs
+      cleanupBulkMode();
       
       // Update active states
       navTabs.forEach(t => t.classList.remove('active'));
