@@ -2,118 +2,245 @@
 <html>
   <head>
     <style>
-      /* CSS Variables for theming */
-      :root {
-        --bg-primary: #ffffff;
-        --bg-secondary: #f5f5f5;
-        --text-primary: #000000;
-        --text-secondary: #666666;
-        --border-color: #eeeeee;
-        --hover-bg: #f5f5f5;
-        --input-border: #dddddd;
-        --error-color: #ff0000;
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
 
-      /* Dark mode variables */
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg-primary: #1a1a1a;
-          --bg-secondary: #2d2d2d;
-          --text-primary: #ffffff;
-          --text-secondary: #a0a0a0;
-          --border-color: #404040;
-          --hover-bg: #363636;
-          --input-border: #404040;
-          --error-color: #ff6b6b;
-        }
+      :root {
+        /* Bitwarden-style dark theme colors */
+        --bg-primary: #1f2937;
+        --bg-secondary: #171c26;
+        --bg-hover: #2d3748;
+        --bg-input: #2d3748;
+        --text-primary: #ffffff;
+        --text-secondary: #9ca3af;
+        --text-muted: #6b7280;
+        --border-color: #374151;
+        --accent-blue: #3b82f6;
+        --accent-blue-hover: #2563eb;
+        --success-green: #10b981;
+        --error-red: #ef4444;
       }
 
       body {
         width: 400px;
-        padding: 10px;
-        font-family: Arial, sans-serif;
-        background-color: var(--bg-primary);
+        height: 600px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg-secondary);
         color: var(--text-primary);
-        margin: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
 
-      .search-container {
-        margin-bottom: 15px;
-        position: sticky;
-        top: 0;
+      /* Header */
+      .header {
         background: var(--bg-primary);
-        padding: 10px 0;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         border-bottom: 1px solid var(--border-color);
-        z-index: 100;
+      }
+
+      .header-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .header-btn {
+        background: var(--accent-blue);
+        color: white;
+        border: none;
+        padding: 6px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .header-btn:hover {
+        background: var(--accent-blue-hover);
+      }
+
+      .header-icon-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+
+      .header-icon-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+
+      /* Search */
+      .search-container {
+        padding: 12px 16px;
+        background: var(--bg-primary);
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .search-wrapper {
+        position: relative;
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
       }
 
       #search-input {
         width: 100%;
-        padding: 8px;
-        box-sizing: border-box;
-        border: 1px solid var(--input-border);
-        border-radius: 4px;
-        font-size: 14px;
-        background: var(--bg-primary);
+        padding: 10px 12px 10px 38px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
         color: var(--text-primary);
+        font-size: 14px;
+        transition: all 0.2s;
+      }
+
+      #search-input:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+        background: var(--bg-secondary);
       }
 
       #search-input::placeholder {
-        color: var(--text-secondary);
+        color: var(--text-muted);
       }
 
+      /* Main Content */
+      .main-content {
+        flex: 1;
+        overflow-y: auto;
+        background: var(--bg-secondary);
+      }
+
+      /* Sections */
       .source-section {
-        margin-bottom: 15px;
-        opacity: 1;
-        transform: translateY(0);
-        transition: opacity 0.3s ease, transform 0.3s ease;
-      }
-
-      .source-section[style*="display: none"] {
-        opacity: 0;
-        transform: translateY(-10px);
+        margin-bottom: 8px;
       }
 
       .source-header {
-        font-weight: bold;
-        margin-bottom: 5px;
-        padding: 5px;
-        background: var(--bg-secondary);
+        padding: 8px 16px;
+        margin: 0 8px 4px 8px;
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         border-radius: 4px;
       }
 
+      .source-count {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+      }
+
+      /* Nav Items */
       .nav-item {
         display: flex;
         align-items: center;
-        padding: 10px 8px;
-        cursor: pointer;
-        border-bottom: 1px solid var(--border-color);
-        opacity: 1;
-        transform: translateX(0);
-        transition: all 0.2s ease-in-out;
+        padding: 10px 16px;
+        margin: 0 8px;
+        background: var(--bg-secondary);
+        border: none;
+        border-radius: 4px;
+        transition: background 0.15s;
+        position: relative;
       }
 
       .nav-item:hover {
-        background-color: var(--hover-bg);
+        background: var(--bg-hover);
       }
 
       .nav-item.hidden {
-        opacity: 0;
-        transform: translateX(-10px);
-        max-height: 0;
-        padding: 0;
-        margin: 0;
-        border: none;
-        pointer-events: none;
+        display: none;
+      }
+
+      .nav-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--bg-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        flex-shrink: 0;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+      }
+
+      .nav-icon img {
+        width: 16px;
+        height: 16px;
+        object-fit: contain;
+      }
+
+      .nav-icon-text {
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .nav-content {
+        flex: 1;
+        min-width: 0;
+        margin-right: 8px;
       }
 
       .nav-item-path {
-        flex: 1;
-        cursor: pointer;
+        font-size: 14px;
+        color: var(--text-primary);
+        font-weight: 400;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .nav-item-url {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 1px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .nav-item-actions {
@@ -122,91 +249,65 @@
         align-items: center;
       }
 
-      .copy-btn {
-        width: 28px;
-        height: 28px;
-        padding: 0;
+      .action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
         background: transparent;
-        border: 1px solid transparent;
-        border-radius: 4px;
+        border: none;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--text-secondary);
+        color: rgba(255, 255, 255, 0.9);
         transition: all 0.15s;
       }
 
-      .copy-btn:hover {
-        background: var(--bg-secondary);
-        border-color: var(--border-color);
-        color: var(--text-primary);
+      .action-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
       }
 
-      .copy-btn:active {
-        transform: scale(0.95);
+      .action-btn.copied {
+        color: var(--success-green);
       }
 
-      .copy-btn.copied {
-        color: #4caf50;
-      }
 
-      .copy-icon {
-        width: 16px;
-        height: 16px;
-      }
-
+      /* Loading & Error States */
       #loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-secondary);
+      }
+
+      .no-results {
+        display: none;
         text-align: center;
+        padding: 40px;
         color: var(--text-secondary);
       }
 
       .error {
-        color: var(--error-color);
-        font-size: 0.9em;
-        margin: 5px 0;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid var(--error-red);
+        color: var(--error-red);
+        padding: 12px;
+        margin: 16px;
+        border-radius: 6px;
+        font-size: 14px;
         display: none;
       }
 
-      .no-results {
-        text-align: center;
-        color: var(--text-secondary);
-        padding: 20px;
-        display: none;
-        opacity: 0;
-        transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
-      }
-
-      .no-results[style*="display: block"] {
-        opacity: 1;
-        transform: translateY(0);
-      }
-
-      /* Smooth scrollbar for webkit browsers */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      ::-webkit-scrollbar-track {
-        background: var(--bg-primary);
-      }
-
-      ::-webkit-scrollbar-thumb {
-        background: var(--text-secondary);
-        border-radius: 4px;
-      }
-
-      ::-webkit-scrollbar-thumb:hover {
-        background: var(--text-primary);
-      }
-
-      /* Export buttons */
+      /* Export Container */
       .export-container {
         display: none;
-        gap: 8px;
-        padding: 10px 0;
+        padding: 8px;
+        background: var(--bg-primary);
         border-bottom: 1px solid var(--border-color);
+        gap: 8px;
       }
 
       .export-container.visible {
@@ -215,40 +316,114 @@
 
       .export-btn {
         flex: 1;
-        padding: 6px 12px;
-        background: var(--bg-secondary);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        cursor: pointer;
+        padding: 8px;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.9);
+        border-radius: 6px;
         font-size: 13px;
-        transition: background 0.2s;
+        cursor: pointer;
+        transition: all 0.2s;
       }
 
       .export-btn:hover {
-        background: var(--hover-bg);
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-color: rgba(255, 255, 255, 0.3);
       }
 
-      .export-btn:active {
-        transform: translateY(1px);
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+      }
+
+      /* Icons */
+      .icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .icon-sm {
+        width: 14px;
+        height: 14px;
       }
     </style>
   </head>
   <body>
+    <!-- Header -->
+    <div class="header">
+      <div class="header-title">Site Navigator</div>
+      <div class="header-actions">
+        <button class="header-icon-btn" id="refresh-btn" title="Refresh">
+          <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search -->
     <div class="search-container">
-      <input
-        type="text"
-        id="search-input"
-        placeholder="Search paths (use * for wildcards, / for segments)"
-      />
+      <div class="search-wrapper">
+        <svg class="search-icon icon-sm" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+        </svg>
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Search paths (use * for wildcards, / for segments)"
+        />
+      </div>
     </div>
+
+    <!-- Export Buttons -->
     <div id="export-container" class="export-container">
-      <button id="export-csv" class="export-btn">Export as CSV</button>
-      <button id="export-json" class="export-btn">Export as JSON</button>
+      <button id="export-csv" class="export-btn">
+        <svg class="icon-sm" style="display: inline; vertical-align: middle; margin-right: 4px;" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+        </svg>
+        Export CSV
+      </button>
+      <button id="export-json" class="export-btn">
+        <svg class="icon-sm" style="display: inline; vertical-align: middle; margin-right: 4px;" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M5,3H7V5H5V10A2,2 0 0,1 3,12A2,2 0 0,1 5,14V19H7V21H5C3.93,20.73 3,20.1 3,19V15A2,2 0 0,0 1,13H0V11H1A2,2 0 0,0 3,9V5A2,2 0 0,1 5,3M19,3A2,2 0 0,1 21,5V9A2,2 0 0,0 23,11H24V13H23A2,2 0 0,0 21,15V19A2,2 0 0,1 19,21H17V19H19V14A2,2 0 0,1 21,12A2,2 0 0,1 19,10V5H17V3H19Z"/>
+        </svg>
+        Export JSON
+      </button>
     </div>
-    <div id="loading">Discovering site structure...</div>
-    <div id="no-results" class="no-results">No matching paths found</div>
-    <div id="nav-menu"></div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div id="loading">
+        <svg class="icon" fill="currentColor" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;">
+          <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
+        </svg>
+        <div style="margin-top: 12px;">Discovering site structure...</div>
+      </div>
+      <div id="no-results" class="no-results">No matching paths found</div>
+      <div id="nav-menu"></div>
+    </div>
+
+    <style>
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    </style>
+
     <script src="popup.js"></script>
   </body>
 </html>

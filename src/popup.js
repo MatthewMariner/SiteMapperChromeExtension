@@ -334,13 +334,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const exportContainer = document.getElementById("export-container");
   const exportCsvBtn = document.getElementById("export-csv");
   const exportJsonBtn = document.getElementById("export-json");
+  const refreshBtn = document.getElementById("refresh-btn");
   let allPaths = [];
   let currentDomain = "";
 
   function getVisiblePaths() {
     return Array.from(document.querySelectorAll(".nav-item"))
       .filter(item => !item.classList.contains("hidden"))
-      .map(item => item.querySelector(".nav-item-path").textContent);
+      .map(item => item.querySelector(".nav-item-path")?.textContent || item.dataset.path);
   }
 
   function downloadFile(content, filename, type) {
@@ -406,7 +407,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Filter items
     document.querySelectorAll(".nav-item").forEach((item) => {
-      const path = item.querySelector(".nav-item-path").textContent;
+      const path = item.querySelector(".nav-item-path")?.textContent || item.dataset.path;
       const matches = filter.matches(path);
       item.classList.toggle("hidden", !matches);
       if (matches) hasVisibleItems = true;
@@ -435,6 +436,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Add export button handlers
   exportCsvBtn.addEventListener("click", exportAsCSV);
   exportJsonBtn.addEventListener("click", exportAsJSON);
+  
+  // Add refresh button handler
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      window.location.reload();
+    });
+  }
 
   try {
     // Get current tab URL
@@ -451,6 +459,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const url = new URL(tab.url);
     const baseUrl = `${url.protocol}//${url.hostname}`;
     currentDomain = baseUrl;
+    
+    // Get favicon URL
+    const faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
 
     const siteMapper = new SiteMapper(baseUrl);
     const paths = await siteMapper.getAllPaths();
@@ -471,36 +482,80 @@ document.addEventListener("DOMContentLoaded", async () => {
       "Deep Pages": paths.filter((p) => p.split("/").length > 3),
     };
 
-    // Render sections
+    // Render sections with new design
     Object.entries(sections).forEach(([title, sectionPaths]) => {
       if (sectionPaths.length > 0) {
         const section = document.createElement("div");
         section.className = "source-section";
 
+        // Section header with count
         const header = document.createElement("div");
         header.className = "source-header";
-        header.textContent = `${title} (${sectionPaths.length})`;
+        header.innerHTML = `
+          <span>${title}</span>
+          <span class="source-count">${sectionPaths.length}</span>
+        `;
         section.appendChild(header);
 
         sectionPaths.forEach((path) => {
           const div = document.createElement("div");
           div.className = "nav-item";
+          div.dataset.path = path;
           
-          // Path element
+          // Icon with favicon or first letter
+          const icon = document.createElement("div");
+          icon.className = "nav-icon";
+          
+          // Try to use favicon
+          const favicon = document.createElement("img");
+          favicon.src = faviconUrl;
+          favicon.onerror = () => {
+            // Fallback to text if favicon fails
+            icon.innerHTML = '';
+            const iconText = document.createElement("span");
+            iconText.className = "nav-icon-text";
+            const pathSegments = path.split("/").filter(Boolean);
+            const lastSegment = pathSegments[pathSegments.length - 1] || "H";
+            iconText.textContent = lastSegment[0].toUpperCase();
+            icon.appendChild(iconText);
+          };
+          icon.appendChild(favicon);
+          
+          // Content wrapper
+          const content = document.createElement("div");
+          content.className = "nav-content";
+          
+          // Path name - make it more readable
           const pathEl = document.createElement("div");
           pathEl.className = "nav-item-path";
-          pathEl.textContent = path;
-          pathEl.onclick = () => {
+          // Get last meaningful segment for display
+          const pathSegments = path.split("/").filter(Boolean);
+          const displayName = pathSegments[pathSegments.length - 1] || "Home";
+          // Convert kebab/snake case to title case
+          pathEl.textContent = displayName
+            .replace(/[-_]/g, ' ')
+            .replace(/\b\w/g, l => l.toUpperCase());
+          
+          // URL preview - show the path
+          const urlEl = document.createElement("div");
+          urlEl.className = "nav-item-url";
+          urlEl.textContent = path;
+          
+          content.appendChild(pathEl);
+          content.appendChild(urlEl);
+          
+          // Set click handlers on content
+          content.onclick = () => {
             chrome.tabs.create({ url: baseUrl + path });
           };
-          pathEl.onmousedown = (e) => {
+          content.onmousedown = (e) => {
             if (e.button === 1) {
               e.preventDefault();
               chrome.tabs.create({ url: baseUrl + path, active: false });
               return false;
             }
           };
-          pathEl.onmouseup = (e) => {
+          content.onmouseup = (e) => {
             if (e.button === 1) {
               e.preventDefault();
               return false;
@@ -513,10 +568,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           
           // Copy button
           const copyBtn = document.createElement("button");
-          copyBtn.className = "copy-btn";
+          copyBtn.className = "action-btn";
           copyBtn.title = "Copy URL";
           copyBtn.innerHTML = `
-            <svg class="copy-icon" fill="currentColor" viewBox="0 0 24 24">
+            <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
               <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
             </svg>
           `;
@@ -527,14 +582,14 @@ document.addEventListener("DOMContentLoaded", async () => {
               await navigator.clipboard.writeText(fullUrl);
               copyBtn.classList.add("copied");
               copyBtn.innerHTML = `
-                <svg class="copy-icon" fill="currentColor" viewBox="0 0 24 24">
+                <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                 </svg>
               `;
               setTimeout(() => {
                 copyBtn.classList.remove("copied");
                 copyBtn.innerHTML = `
-                  <svg class="copy-icon" fill="currentColor" viewBox="0 0 24 24">
+                  <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
                   </svg>
                 `;
@@ -545,7 +600,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           };
           
           actions.appendChild(copyBtn);
-          div.appendChild(pathEl);
+          
+          div.appendChild(icon);
+          div.appendChild(content);
           div.appendChild(actions);
           section.appendChild(div);
         });
