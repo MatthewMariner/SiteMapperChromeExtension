@@ -1076,6 +1076,80 @@ document.addEventListener("DOMContentLoaded", async () => {
           
           actions.appendChild(copyBtn);
           
+          // Three-dot menu button
+          const menuContainer = document.createElement("div");
+          menuContainer.className = "dropdown-container";
+          
+          const menuBtn = document.createElement("button");
+          menuBtn.className = "action-btn";
+          menuBtn.title = "More actions";
+          menuBtn.innerHTML = `
+            <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+            </svg>
+          `;
+          
+          // Dropdown menu
+          const dropdownMenu = document.createElement("div");
+          dropdownMenu.className = "dropdown-menu";
+          dropdownMenu.innerHTML = `
+            <button class="dropdown-item" data-action="seo-analysis">
+              <svg fill="currentColor" viewBox="0 0 24 24">
+                <path d="M9 4v1.38c-.83-.33-1.72-.5-2.61-.5-1.79 0-3.58.68-4.95 2.05l3.33 3.33h1.11v1.11c.86.86 1.98 1.31 3.11 1.36V15H6v3c0 1.1.9 2 2 2h10c1.66 0 3-1.34 3-3V4H9zm-1.11 6.41V8.26H5.61L4.57 7.22a5.07 5.07 0 0 1 1.82-.34c1.34 0 2.59.52 3.54 1.46l1.41 1.41-.2.2a2.7 2.7 0 0 1-1.92.8c-.47 0-.93-.12-1.33-.34zM19 17c0 .55-.45 1-1 1s-1-.45-1-1v-2h-6v2c0 .55-.45 1-1 1s-1-.45-1-1v-3h8v3z"/>
+              </svg>
+              SEO Analysis
+            </button>
+            <button class="dropdown-item" data-action="open-new-tab">
+              <svg fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+              </svg>
+              Open in New Tab
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" data-action="view-source">
+              <svg fill="currentColor" viewBox="0 0 24 24">
+                <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+              </svg>
+              View Source
+            </button>
+          `;
+          
+          menuBtn.onclick = (e) => {
+            e.stopPropagation();
+            // Close all other dropdowns
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+              if (menu !== dropdownMenu) menu.classList.remove('show');
+            });
+            dropdownMenu.classList.toggle('show');
+          };
+          
+          // Handle dropdown item clicks
+          dropdownMenu.querySelectorAll('.dropdown-item').forEach(item => {
+            item.onclick = async (e) => {
+              e.stopPropagation();
+              dropdownMenu.classList.remove('show');
+              
+              const action = item.dataset.action;
+              const fullUrl = baseUrl + path;
+              
+              switch(action) {
+                case 'seo-analysis':
+                  showSEOModal(fullUrl);
+                  break;
+                case 'open-new-tab':
+                  chrome.tabs.create({ url: fullUrl });
+                  break;
+                case 'view-source':
+                  chrome.tabs.create({ url: 'view-source:' + fullUrl });
+                  break;
+              }
+            };
+          });
+          
+          menuContainer.appendChild(menuBtn);
+          menuContainer.appendChild(dropdownMenu);
+          actions.appendChild(menuContainer);
+          
           div.appendChild(icon);
           div.appendChild(content);
           div.appendChild(actions);
@@ -1161,4 +1235,251 @@ document.addEventListener("DOMContentLoaded", async () => {
   } finally {
     loading.style.display = "none";
   }
+  
+  // SEO Modal functionality
+  function showSEOModal(url) {
+    const modal = document.getElementById('seo-modal');
+    const modalBody = document.getElementById('seo-content');
+    
+    // Show modal with loading state
+    modal.classList.add('show');
+    modalBody.innerHTML = `
+      <div style="text-align: center; padding: 40px;">
+        <div class="loading-spinner"></div>
+        <div style="margin-top: 12px; color: var(--text-secondary);">Analyzing page...</div>
+      </div>
+    `;
+    
+    // Fetch and analyze the page
+    analyzePage(url).then(seoData => {
+      displaySEOData(seoData);
+    }).catch(err => {
+      modalBody.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: var(--error-red);">
+          <svg width="48" height="48" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+          <div style="margin-top: 12px;">Failed to analyze page</div>
+          <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">${err.message}</div>
+        </div>
+      `;
+    });
+  }
+  
+  async function analyzePage(url) {
+    try {
+      // Create a new tab with the URL
+      const tab = await chrome.tabs.create({ url, active: false });
+      
+      // Wait for the tab to load
+      await new Promise(resolve => {
+        chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+          if (tabId === tab.id && info.status === 'complete') {
+            chrome.tabs.onUpdated.removeListener(listener);
+            resolve();
+          }
+        });
+      });
+      
+      // Execute script to extract SEO data
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: function() {
+          const data = {
+            title: document.title || 'No title',
+            description: document.querySelector('meta[name="description"]')?.content || 'No description',
+            h1: [],
+            h2: [],
+            h3: [],
+            wordCount: 0,
+            images: { total: 0, withoutAlt: 0 },
+            links: { internal: 0, external: 0 },
+            meta: {}
+          };
+          
+          // Get H1 tags
+          document.querySelectorAll('h1').forEach(h => {
+            if (h.textContent.trim()) data.h1.push(h.textContent.trim());
+          });
+          
+          // Get H2 tags
+          document.querySelectorAll('h2').forEach(h => {
+            if (h.textContent.trim()) data.h2.push(h.textContent.trim());
+          });
+          
+          // Get H3 tags
+          document.querySelectorAll('h3').forEach(h => {
+            if (h.textContent.trim()) data.h3.push(h.textContent.trim());
+          });
+          
+          // Count words
+          const text = document.body.innerText || '';
+          data.wordCount = text.trim().split(/\s+/).length;
+          
+          // Analyze images
+          const images = document.querySelectorAll('img');
+          data.images.total = images.length;
+          images.forEach(img => {
+            if (!img.alt) data.images.withoutAlt++;
+          });
+          
+          // Analyze links
+          const links = document.querySelectorAll('a[href]');
+          links.forEach(link => {
+            const href = link.href;
+            if (href.startsWith(window.location.origin)) {
+              data.links.internal++;
+            } else if (href.startsWith('http')) {
+              data.links.external++;
+            }
+          });
+          
+          // Get meta tags
+          document.querySelectorAll('meta').forEach(meta => {
+            if (meta.name && meta.content) {
+              data.meta[meta.name] = meta.content;
+            } else if (meta.property && meta.content) {
+              data.meta[meta.property] = meta.content;
+            }
+          });
+          
+          return data;
+        }
+      });
+      
+      // Close the tab
+      await chrome.tabs.remove(tab.id);
+      
+      return results[0].result;
+    } catch (err) {
+      throw new Error('Failed to analyze page: ' + err.message);
+    }
+  }
+  
+  function displaySEOData(data) {
+    const modalBody = document.getElementById('seo-content');
+    
+    modalBody.innerHTML = `
+      <div class="seo-section">
+        <h3 class="seo-section-title">Page Title</h3>
+        <div class="seo-content">${data.title}</div>
+      </div>
+      
+      <div class="seo-section">
+        <h3 class="seo-section-title">Meta Description</h3>
+        <div class="seo-content">${data.description}</div>
+      </div>
+      
+      <div class="seo-section">
+        <h3 class="seo-section-title">Headings</h3>
+        <div class="seo-content">
+          ${data.h1.length > 0 ? `
+            <div style="margin-bottom: 12px;">
+              <strong style="color: var(--text-secondary); font-size: 11px;">H1 (${data.h1.length})</strong>
+              <ul class="seo-list" style="margin-top: 4px;">
+                ${data.h1.map(h => `<li>• ${h}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+          ${data.h2.length > 0 ? `
+            <div style="margin-bottom: 12px;">
+              <strong style="color: var(--text-secondary); font-size: 11px;">H2 (${data.h2.length})</strong>
+              <ul class="seo-list" style="margin-top: 4px;">
+                ${data.h2.slice(0, 5).map(h => `<li>• ${h}</li>`).join('')}
+                ${data.h2.length > 5 ? `<li style="color: var(--text-muted);">... and ${data.h2.length - 5} more</li>` : ''}
+              </ul>
+            </div>
+          ` : ''}
+          ${data.h3.length > 0 ? `
+            <div>
+              <strong style="color: var(--text-secondary); font-size: 11px;">H3 (${data.h3.length})</strong>
+              <ul class="seo-list" style="margin-top: 4px;">
+                ${data.h3.slice(0, 3).map(h => `<li>• ${h}</li>`).join('')}
+                ${data.h3.length > 3 ? `<li style="color: var(--text-muted);">... and ${data.h3.length - 3} more</li>` : ''}
+              </ul>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+      
+      <div class="seo-section">
+        <h3 class="seo-section-title">Page Statistics</h3>
+        <div class="seo-content">
+          <div class="seo-stat">
+            <span class="seo-stat-label">Word Count</span>
+            <span class="seo-stat-value">${data.wordCount.toLocaleString()}</span>
+          </div>
+          <div class="seo-stat">
+            <span class="seo-stat-label">Images</span>
+            <span class="seo-stat-value">${data.images.total}</span>
+          </div>
+          <div class="seo-stat">
+            <span class="seo-stat-label">Images without Alt</span>
+            <span class="seo-stat-value">${data.images.withoutAlt}</span>
+          </div>
+          <div class="seo-stat">
+            <span class="seo-stat-label">Internal Links</span>
+            <span class="seo-stat-value">${data.links.internal}</span>
+          </div>
+          <div class="seo-stat">
+            <span class="seo-stat-label">External Links</span>
+            <span class="seo-stat-value">${data.links.external}</span>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Store data for export
+    window.currentSEOData = data;
+  }
+  
+  // Modal close handlers
+  document.getElementById('close-modal')?.addEventListener('click', () => {
+    document.getElementById('seo-modal').classList.remove('show');
+  });
+  
+  document.getElementById('seo-modal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      e.currentTarget.classList.remove('show');
+    }
+  });
+  
+  // Export SEO data
+  document.getElementById('export-seo')?.addEventListener('click', () => {
+    if (window.currentSEOData) {
+      const json = JSON.stringify(window.currentSEOData, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `seo-analysis-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  });
+  
+  // Copy SEO data to clipboard
+  document.getElementById('copy-seo')?.addEventListener('click', async () => {
+    if (window.currentSEOData) {
+      const text = JSON.stringify(window.currentSEOData, null, 2);
+      try {
+        await navigator.clipboard.writeText(text);
+        const btn = document.getElementById('copy-seo');
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    }
+  });
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+      menu.classList.remove('show');
+    });
+  });
 });
