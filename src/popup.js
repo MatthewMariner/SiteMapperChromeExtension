@@ -408,8 +408,8 @@ class SiteMapper {
 class SettingsManager {
   constructor() {
     this.settings = {
-      hideXml: false,
-      hideFiles: false,
+      hideXml: true,
+      hideFiles: true,
       autoPing: true,
       theme: 'dark'
     };
