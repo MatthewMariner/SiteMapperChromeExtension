@@ -236,7 +236,23 @@ class SiteMapper {
       ];
 
       for (const loc of locations) {
-        const url = loc.textContent.trim();
+        let url = loc.textContent.trim();
+        
+        // Decode URL-encoded characters to handle %20 and other encoded characters
+        try {
+          url = decodeURIComponent(url);
+        } catch {
+          // If decoding fails, use the original URL
+        }
+        
+        // Skip URLs that look like timestamps or contain invalid patterns
+        if (url.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+          continue; // Skip timestamp-like URLs
+        }
+        
+        // Clean up multiple spaces but preserve single spaces as %20
+        url = url.replace(/\s+/g, ' ').trim();
+        
         if (url.endsWith(".xml") && this.isValidUrl(url)) {
           await this.parseSitemapUrl(url);
         } else {
@@ -353,7 +369,23 @@ class SiteMapper {
 
       // Only process URLs from the same domain
       if (urlObj.hostname === new URL(this.baseUrl).hostname) {
-        const path = urlObj.pathname;
+        let path = urlObj.pathname;
+        
+        // Decode any remaining URL encoding in the path
+        try {
+          path = decodeURIComponent(path);
+        } catch {
+          // Use original if decoding fails
+        }
+        
+        // Skip paths that look like timestamps
+        if (path.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+          return;
+        }
+        
+        // Clean up multiple spaces
+        path = path.replace(/\s+/g, ' ').trim();
+        
         if (
           path &&
           path !== "/" &&
