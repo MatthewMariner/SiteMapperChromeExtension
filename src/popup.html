@@ -222,6 +222,7 @@
         flex: 1;
         min-width: 0;
         margin-right: 8px;
+        cursor: pointer;
       }
 
       .nav-item-path {
@@ -231,12 +232,11 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        cursor: pointer;
       }
 
       .nav-item-url {
         font-size: 12px;
-        color: var(--text-muted);
+        color: rgba(255, 255, 255, 0.7);
         margin-top: 1px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -385,6 +385,7 @@
           type="text"
           id="search-input"
           placeholder="Search paths (use * for wildcards, / for segments)"
+          autofocus
         />
       </div>
     </div>

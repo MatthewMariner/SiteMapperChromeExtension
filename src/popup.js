@@ -339,6 +339,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   let currentDomain = "";
   let isUsingCache = false;
 
+  // Focus search input on load
+  setTimeout(() => searchInput.focus(), 100);
+
   async function getCachedPaths(domain) {
     try {
       const result = await chrome.storage.local.get([domain]);
