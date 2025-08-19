@@ -117,20 +117,24 @@ class SiteMapper {
     
     if (pathsToCheck.length === 0) return;
     
+    // Use HEAD requests for faster status checks
     for (let i = 0; i < pathsToCheck.length; i += batchSize) {
       const batch = pathsToCheck.slice(i, i + batchSize);
       
       const promises = batch.map(async (item) => {
         try {
-          const response = await this.fetchWithTimeout(
-            `${this.baseUrl}${item.path}`,
-            3000
-          );
-          item.status = response.status;
-          // Handle redirects
-          if (response.redirected) {
-            item.status = 301; // Assume redirect
-          }
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          
+          const response = await fetch(`${this.baseUrl}${item.path}`, {
+            method: 'HEAD',
+            signal: controller.signal,
+            credentials: 'omit',
+            mode: 'no-cors'
+          });
+          
+          clearTimeout(timeoutId);
+          item.status = response.status || (response.type === 'opaque' ? 200 : null);
           
           // Callback to update UI dynamically
           if (onStatusUpdate) {

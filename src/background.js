@@ -1,6 +1,23 @@
 // background.js
 let tabPageCounts = new Map();
 
+// Keep service worker alive
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('Extension installed');
+});
+
+// Clean up old tabs periodically
+setInterval(() => {
+  chrome.tabs.query({}, (tabs) => {
+    const activeTabs = new Set(tabs.map(t => t.id));
+    for (const tabId of tabPageCounts.keys()) {
+      if (!activeTabs.has(tabId)) {
+        tabPageCounts.delete(tabId);
+      }
+    }
+  });
+}, 60e3); // Clean every minute
+
 // Listen for tab updates
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url?.startsWith("http")) {
