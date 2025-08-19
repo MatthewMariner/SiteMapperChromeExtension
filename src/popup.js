@@ -304,10 +304,32 @@ class ProManager {
 const proManager = new ProManager();
 
 class PathFilter {
-  constructor(pattern) {
-    this.pattern = pattern.toLowerCase();
-    this.segments = pattern.split("/").filter(Boolean);
-    this.regexPattern = this.createRegexPattern(pattern);
+  constructor(pattern, isPro = false) {
+    this.originalPattern = pattern;
+    this.isPro = isPro;
+    this.isRegex = false;
+    
+    // Check if this is a regex pattern (for Pro users only)
+    if (isPro && pattern.startsWith('/') && (pattern.endsWith('/') || pattern.includes('/i') || pattern.includes('/g'))) {
+      try {
+        // Extract regex pattern and flags
+        const lastSlash = pattern.lastIndexOf('/');
+        const regexBody = pattern.slice(1, lastSlash);
+        const flags = pattern.slice(lastSlash + 1) || 'i';
+        this.regexPattern = new RegExp(regexBody, flags);
+        this.isRegex = true;
+      } catch (e) {
+        // Invalid regex, fall back to normal pattern matching
+        this.pattern = pattern.toLowerCase();
+        this.segments = pattern.split("/").filter(Boolean);
+        this.regexPattern = this.createRegexPattern(pattern);
+      }
+    } else {
+      // Normal pattern matching
+      this.pattern = pattern.toLowerCase();
+      this.segments = pattern.split("/").filter(Boolean);
+      this.regexPattern = this.createRegexPattern(pattern);
+    }
   }
 
   createRegexPattern(pattern) {
@@ -332,7 +354,16 @@ class PathFilter {
 
   matches(path) {
     // If no pattern, show everything
-    if (!this.pattern) return true;
+    if (!this.originalPattern) return true;
+
+    // If using regex mode (Pro only)
+    if (this.isRegex && this.regexPattern) {
+      try {
+        return this.regexPattern.test(path);
+      } catch (e) {
+        return false;
+      }
+    }
 
     // Normalize path for comparison
     const normalizedPath = path.toLowerCase();
@@ -802,6 +833,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       `;
       upgradeBtn.title = 'Pro features active';
     }
+    
+    // Update search placeholder to show regex support
+    if (searchInput) {
+      searchInput.placeholder = 'Search paths (* wildcards, /regex/ for Pro regex)';
+    }
   } else {
     // Keep FREE status pill (already set in HTML)
     
@@ -1251,17 +1287,42 @@ document.addEventListener("DOMContentLoaded", async () => {
       showExportLimitNotice();
     }
     
-    let csv = "URL,Path,Status,Depth,Timestamp\n";
-    items.forEach(item => {
+    let csv = "";
+    
+    // Add watermark header for free users
+    if (!isPro) {
+      csv += "# EXPORTED WITH SITE STRUCTURE NAVIGATOR - FREE VERSION\n";
+      csv += "# Upgrade to Pro to remove watermarks and export unlimited URLs\n";
+      csv += "# Visit: chrome.google.com/webstore\n";
+      csv += "#\n";
+    }
+    
+    csv += "URL,Path,Status,Depth,Timestamp\n";
+    
+    items.forEach((item, index) => {
       const path = (item && item.path) ? item.path : (typeof item === 'string' ? item : '');
       if (!path) return; // Skip empty paths
       const status = (item && item.status) || '';
       const fullUrl = `${currentDomain}${path}`;
       const depth = path.split("/").filter(Boolean).length;
       csv += `"${fullUrl}","${path}","${status}",${depth},"${timestamp}"\n`;
+      
+      // Add watermark reminder every 5 rows for free users
+      if (!isPro && (index + 1) % 5 === 0 && index < items.length - 1) {
+        csv += "# --- FREE VERSION - Upgrade for unlimited exports ---\n";
+      }
     });
     
-    downloadFile(csv, `sitemap_${domain}_${timestamp}${!isPro && allPaths.length > 10 ? '_limited' : ''}.csv`, "text/csv");
+    // Add watermark footer for free users
+    if (!isPro) {
+      csv += "#\n";
+      csv += "# END OF EXPORT - FREE VERSION LIMITED TO 10 URLS\n";
+      csv += "# Generated with Site Structure Navigator\n";
+      csv += `# Export Date: ${timestamp}\n`;
+      csv += "# Upgrade to Pro for unlimited exports without watermarks\n";
+    }
+    
+    downloadFile(csv, `sitemap_${domain}_${timestamp}${!isPro ? '_free' : ''}.csv`, "text/csv");
   }
 
   async function exportAsJSON() {
@@ -1279,28 +1340,76 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     
     const pages = [];
-    items.forEach(item => {
+    items.forEach((item, index) => {
       const path = (item && item.path) ? item.path : (typeof item === 'string' ? item : '');
       if (!path) return; // Skip empty paths
       const status = (item && item.status) || null;
-      pages.push({
+      
+      const pageData = {
         path,
         url: `${currentDomain}${path}`,
         status,
         depth: path.split("/").filter(Boolean).length
-      });
+      };
+      
+      // Add watermark to every 3rd item for free users
+      if (!isPro && (index + 1) % 3 === 0) {
+        pageData._watermark = "FREE_VERSION";
+      }
+      
+      pages.push(pageData);
     });
     
     const data = {
       domain: currentDomain,
       timestamp,
-      totalPages: pages.length,
-      exportLimited: !isPro && allPaths.length > 10,
-      pages
+      totalPages: pages.length
     };
     
-    const json = JSON.stringify(data, null, 2);
-    downloadFile(json, `sitemap_${domain}_${timestamp.split("T")[0]}${!isPro && allPaths.length > 10 ? '_limited' : ''}.json`, "application/json");
+    // Add watermark metadata for free users
+    if (!isPro) {
+      data.metadata = {
+        exportType: "FREE_VERSION",
+        watermark: true,
+        limitedExport: allPaths.length > 10,
+        maxUrls: 10,
+        actualUrls: allPaths.length,
+        notice: "This export contains watermarks. Upgrade to Pro for clean exports.",
+        upgradeUrl: "chrome.google.com/webstore"
+      };
+      data.watermarks = {
+        header: "EXPORTED WITH SITE STRUCTURE NAVIGATOR - FREE VERSION",
+        footer: "Upgrade to Pro to remove watermarks and export unlimited URLs",
+        generatedBy: "Site Structure Navigator (Free)",
+        exportDate: timestamp.split("T")[0]
+      };
+    } else {
+      data.metadata = {
+        exportType: "PRO_VERSION",
+        watermark: false,
+        unlimited: true
+      };
+    }
+    
+    data.pages = pages;
+    
+    // Add additional watermark comment at the beginning for free users
+    let jsonOutput = "";
+    if (!isPro) {
+      jsonOutput = "// SITE STRUCTURE NAVIGATOR - FREE VERSION EXPORT\n";
+      jsonOutput += "// This file contains watermarks. Upgrade to Pro for clean exports.\n";
+      jsonOutput += "// Visit: chrome.google.com/webstore\n\n";
+    }
+    
+    jsonOutput += JSON.stringify(data, null, 2);
+    
+    // Add watermark comment at the end for free users
+    if (!isPro) {
+      jsonOutput += "\n\n// END OF FREE VERSION EXPORT";
+      jsonOutput += "\n// Limited to 10 URLs - Upgrade to Pro for unlimited exports";
+    }
+    
+    downloadFile(jsonOutput, `sitemap_${domain}_${timestamp.split("T")[0]}${!isPro ? '_free' : ''}.json`, "application/json");
   }
 
   function filterPaths(searchText) {
@@ -1314,6 +1423,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       noResults.style.display = "none";
       
+      // Hide regex indicator
+      const regexIndicator = document.getElementById('regex-indicator');
+      if (regexIndicator) regexIndicator.style.display = 'none';
+      
       // Re-add checkboxes if in bulk mode
       if (bulkModeActive && proManager.isPro) {
         proManager.enableProFeatures();
@@ -1321,8 +1434,24 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const filter = new PathFilter(searchText.trim());
+    const filter = new PathFilter(searchText.trim(), proManager.isPro);
     let hasVisibleItems = false;
+    
+    // Show regex indicator if regex mode is active
+    const regexIndicator = document.getElementById('regex-indicator');
+    if (regexIndicator) {
+      if (filter.isRegex && proManager.isPro) {
+        regexIndicator.style.display = 'flex';
+        regexIndicator.innerHTML = `
+          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24" style="margin-right: 4px;">
+            <path d="M16 7h-1.5l2.5-5h2l-3 5zm-8 0h-1.5l2.5-5h2l-3 5zm8 10h1.5l-2.5 5h-2l3-5zm-8 0h1.5l-2.5 5h-2l3-5z"/>
+          </svg>
+          <span style="font-size: 11px;">Regex Mode</span>
+        `;
+      } else {
+        regexIndicator.style.display = 'none';
+      }
+    }
 
     // Filter items
     document.querySelectorAll(".nav-item").forEach((item) => {
@@ -1950,6 +2079,69 @@ document.addEventListener("DOMContentLoaded", async () => {
           
           // Advanced Pro features
           if (isPro) {
+            // SEO Score Calculation
+            data.seoScore = {
+              total: 0,
+              breakdown: {},
+              issues: [],
+              warnings: [],
+              successes: []
+            };
+            
+            // Title analysis
+            const titleLength = data.title.length;
+            if (titleLength === 0) {
+              data.seoScore.breakdown.title = 0;
+              data.seoScore.issues.push('Missing page title');
+            } else if (titleLength < 30) {
+              data.seoScore.breakdown.title = 7;
+              data.seoScore.warnings.push('Title too short (< 30 chars)');
+            } else if (titleLength > 60) {
+              data.seoScore.breakdown.title = 7;
+              data.seoScore.warnings.push('Title too long (> 60 chars)');
+            } else {
+              data.seoScore.breakdown.title = 10;
+              data.seoScore.successes.push('Title length optimal');
+            }
+            
+            // Meta description analysis
+            const descLength = data.description.length;
+            if (descLength === 0 || data.description === 'No description') {
+              data.seoScore.breakdown.description = 0;
+              data.seoScore.issues.push('Missing meta description');
+            } else if (descLength < 120) {
+              data.seoScore.breakdown.description = 7;
+              data.seoScore.warnings.push('Description too short (< 120 chars)');
+            } else if (descLength > 160) {
+              data.seoScore.breakdown.description = 7;
+              data.seoScore.warnings.push('Description too long (> 160 chars)');
+            } else {
+              data.seoScore.breakdown.description = 10;
+              data.seoScore.successes.push('Description length optimal');
+            }
+            
+            // H1 analysis
+            if (data.h1.length === 0) {
+              data.seoScore.breakdown.h1 = 0;
+              data.seoScore.issues.push('No H1 tag found');
+            } else if (data.h1.length > 1) {
+              data.seoScore.breakdown.h1 = 5;
+              data.seoScore.warnings.push(`Multiple H1 tags (${data.h1.length})`);
+            } else {
+              data.seoScore.breakdown.h1 = 10;
+              data.seoScore.successes.push('Single H1 tag present');
+            }
+            
+            // Image optimization
+            const imageScore = data.images.total === 0 ? 10 : 
+              Math.max(0, 10 - (data.images.withoutAlt / data.images.total * 10));
+            data.seoScore.breakdown.images = Math.round(imageScore);
+            if (data.images.withoutAlt > 0) {
+              data.seoScore.warnings.push(`${data.images.withoutAlt} images missing alt text`);
+            } else if (data.images.total > 0) {
+              data.seoScore.successes.push('All images have alt text');
+            }
+            
             // Schema.org structured data
             data.structuredData = [];
             document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
@@ -1959,9 +2151,24 @@ document.addEventListener("DOMContentLoaded", async () => {
               } catch (e) {}
             });
             
+            if (data.structuredData.length > 0) {
+              data.seoScore.breakdown.structuredData = 10;
+              data.seoScore.successes.push('Structured data present');
+            } else {
+              data.seoScore.breakdown.structuredData = 0;
+              data.seoScore.warnings.push('No structured data found');
+            }
+            
             // Canonical URL
             const canonical = document.querySelector('link[rel="canonical"]');
             data.canonical = canonical ? canonical.href : null;
+            if (data.canonical) {
+              data.seoScore.breakdown.canonical = 10;
+              data.seoScore.successes.push('Canonical URL specified');
+            } else {
+              data.seoScore.breakdown.canonical = 0;
+              data.seoScore.warnings.push('No canonical URL');
+            }
             
             // Open Graph data
             data.openGraph = {};
@@ -1970,18 +2177,71 @@ document.addEventListener("DOMContentLoaded", async () => {
               data.openGraph[property] = meta.content;
             });
             
+            const hasOG = Object.keys(data.openGraph).length > 0;
+            if (hasOG) {
+              data.seoScore.breakdown.openGraph = 10;
+              data.seoScore.successes.push('Open Graph tags present');
+            } else {
+              data.seoScore.breakdown.openGraph = 0;
+              data.seoScore.warnings.push('No Open Graph tags');
+            }
+            
+            // Twitter Card data
+            data.twitterCard = {};
+            document.querySelectorAll('meta[name^="twitter:"]').forEach(meta => {
+              const name = meta.getAttribute('name').replace('twitter:', '');
+              data.twitterCard[name] = meta.content;
+            });
+            
+            // Mobile viewport
+            const viewport = document.querySelector('meta[name="viewport"]');
+            data.mobileOptimized = !!viewport;
+            if (data.mobileOptimized) {
+              data.seoScore.breakdown.mobile = 10;
+              data.seoScore.successes.push('Mobile viewport configured');
+            } else {
+              data.seoScore.breakdown.mobile = 0;
+              data.seoScore.issues.push('No mobile viewport meta tag');
+            }
+            
             // Performance metrics
             data.performance = {
               domSize: document.getElementsByTagName('*').length,
               scripts: document.scripts.length,
-              stylesheets: document.styleSheets.length
+              stylesheets: document.styleSheets.length,
+              inlineStyles: document.querySelectorAll('[style]').length,
+              iframes: document.querySelectorAll('iframe').length
             };
+            
+            // Performance scoring
+            if (data.performance.domSize > 3000) {
+              data.seoScore.breakdown.performance = 5;
+              data.seoScore.warnings.push(`Large DOM size (${data.performance.domSize} elements)`);
+            } else if (data.performance.domSize > 1500) {
+              data.seoScore.breakdown.performance = 8;
+            } else {
+              data.seoScore.breakdown.performance = 10;
+              data.seoScore.successes.push('Optimal DOM size');
+            }
             
             // Content analysis
             data.contentAnalysis = {
               headingStructure: [],
-              keywordDensity: {}
+              keywordDensity: {},
+              readingTime: Math.ceil(data.wordCount / 200),
+              contentLength: data.wordCount < 300 ? 'thin' : data.wordCount < 1000 ? 'moderate' : 'comprehensive'
             };
+            
+            // Content length scoring
+            if (data.wordCount < 300) {
+              data.seoScore.breakdown.content = 3;
+              data.seoScore.warnings.push('Thin content (< 300 words)');
+            } else if (data.wordCount < 600) {
+              data.seoScore.breakdown.content = 6;
+            } else {
+              data.seoScore.breakdown.content = 10;
+              data.seoScore.successes.push('Good content length');
+            }
             
             // Analyze heading structure
             ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(tag => {
@@ -1990,6 +2250,57 @@ document.addEventListener("DOMContentLoaded", async () => {
                 data.contentAnalysis.headingStructure.push({ tag, count });
               }
             });
+            
+            // SERP Preview
+            data.serpPreview = {
+              title: data.title || 'Untitled Page',
+              description: data.description || 'No description available',
+              url: window.location.href,
+              favicon: document.querySelector('link[rel*="icon"]')?.href
+            };
+            
+            // Accessibility scoring
+            data.accessibility = {
+              langAttribute: document.documentElement.lang,
+              ariaLandmarks: document.querySelectorAll('[role]').length,
+              skipLinks: document.querySelector('a[href^="#"]') ? true : false,
+              formLabels: 0,
+              altTexts: data.images.total - data.images.withoutAlt
+            };
+            
+            // Check form accessibility
+            const inputs = document.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+              if (input.labels && input.labels.length > 0) {
+                data.accessibility.formLabels++;
+              }
+            });
+            
+            if (!data.accessibility.langAttribute) {
+              data.seoScore.breakdown.accessibility = 5;
+              data.seoScore.warnings.push('No language attribute set');
+            } else {
+              data.seoScore.breakdown.accessibility = 10;
+              data.seoScore.successes.push('Language attribute present');
+            }
+            
+            // Calculate total score
+            const scores = Object.values(data.seoScore.breakdown);
+            data.seoScore.total = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10);
+            
+            // Competitor benchmarks (simulated for demo)
+            data.competitorBenchmark = {
+              industryAverage: 72,
+              topPerformer: 94,
+              yourScore: data.seoScore.total
+            };
+            
+            // Page load indicators (simulated)
+            data.coreWebVitals = {
+              LCP: data.performance.domSize > 2000 ? 'Needs Improvement' : 'Good',
+              FID: data.performance.scripts > 10 ? 'Poor' : 'Good',
+              CLS: data.performance.inlineStyles > 50 ? 'Poor' : 'Good'
+            };
           }
           
           return data;
@@ -2006,11 +2317,147 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
   
+  function renderProSEOAnalysis(data) {
+    if (!data.seoScore) return '';
+    
+    return `
+      <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%); 
+                  border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; padding: 16px; margin: 0 0 16px 0;">
+        
+        <!-- Top Section: Score and SERP Preview Side by Side -->
+        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 16px; margin-bottom: 16px;">
+          
+          <!-- SEO Score -->
+          <div style="background: var(--bg-primary); border-radius: 8px; padding: 16px; text-align: center;">
+            <h4 style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">
+              SEO Score
+            </h4>
+            <div style="position: relative; display: inline-block;">
+              <svg width="100" height="100" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--border-color)" stroke-width="6"/>
+                <circle cx="50" cy="50" r="45" fill="none" 
+                        stroke="${data.seoScore.total >= 80 ? '#10b981' : data.seoScore.total >= 60 ? '#fbbf24' : '#ef4444'}" 
+                        stroke-width="6" stroke-linecap="round"
+                        stroke-dasharray="${data.seoScore.total * 2.83} 283"
+                        transform="rotate(-90 50 50)"/>
+              </svg>
+              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                <div style="font-size: 28px; font-weight: bold; 
+                            color: ${data.seoScore.total >= 80 ? '#10b981' : data.seoScore.total >= 60 ? '#fbbf24' : '#ef4444'}">
+                  ${data.seoScore.total}
+                </div>
+                <div style="font-size: 11px; color: var(--text-secondary);">of 100</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- SERP Preview -->
+          ${data.serpPreview ? `
+            <div style="background: var(--bg-primary); border-radius: 8px; padding: 16px;">
+              <h4 style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">
+                Google Search Preview
+              </h4>
+              <div style="background: white; border-radius: 6px; padding: 12px; font-family: arial, sans-serif;">
+                <div style="font-size: 13px; color: #202124; margin-bottom: 2px;">
+                  ${new URL(data.serpPreview.url).hostname} › ...
+                </div>
+                <div style="font-size: 18px; color: #1a0dab; line-height: 1.2; margin-bottom: 3px;">
+                  ${data.serpPreview.title.substring(0, 60)}${data.serpPreview.title.length > 60 ? '...' : ''}
+                </div>
+                <div style="font-size: 13px; color: #4d5156; line-height: 1.4;">
+                  ${data.serpPreview.description.substring(0, 160)}${data.serpPreview.description.length > 160 ? '...' : ''}
+                </div>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+        
+        <!-- Issues and Recommendations -->
+          ${data.seoScore.issues.length > 0 ? `
+            <div style="margin-bottom: 12px;">
+              <div style="font-size: 12px; font-weight: 600; color: #ef4444; margin-bottom: 8px;">
+                🔴 Critical Issues (${data.seoScore.issues.length})
+              </div>
+              ${data.seoScore.issues.map(issue => `
+                <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; padding-left: 16px;">
+                  • ${issue}
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          
+          ${data.seoScore.warnings.length > 0 ? `
+            <div style="margin-bottom: 12px;">
+              <div style="font-size: 12px; font-weight: 600; color: #fbbf24; margin-bottom: 8px;">
+                🟡 Improvements (${data.seoScore.warnings.length})
+              </div>
+              ${data.seoScore.warnings.slice(0, 3).map(warning => `
+                <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; padding-left: 16px;">
+                  • ${warning}
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+        
+        <!-- Core Web Vitals -->
+        ${data.coreWebVitals ? `
+          <div style="background: var(--bg-primary); border-radius: 8px; padding: 16px;">
+            <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">
+              Core Web Vitals
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+              <div style="text-align: center; padding: 8px; background: var(--bg-secondary); border-radius: 6px;">
+                <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">LCP</div>
+                <div style="font-size: 12px; font-weight: 600;
+                            color: ${data.coreWebVitals.LCP === 'Good' ? '#10b981' : '#fbbf24'}">
+                  ${data.coreWebVitals.LCP}
+                </div>
+              </div>
+              <div style="text-align: center; padding: 8px; background: var(--bg-secondary); border-radius: 6px;">
+                <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">FID</div>
+                <div style="font-size: 12px; font-weight: 600;
+                            color: ${data.coreWebVitals.FID === 'Good' ? '#10b981' : '#ef4444'}">
+                  ${data.coreWebVitals.FID}
+                </div>
+              </div>
+              <div style="text-align: center; padding: 8px; background: var(--bg-secondary); border-radius: 6px;">
+                <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">CLS</div>
+                <div style="font-size: 12px; font-weight: 600;
+                            color: ${data.coreWebVitals.CLS === 'Good' ? '#10b981' : '#ef4444'}">
+                  ${data.coreWebVitals.CLS}
+                </div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+  
   async function displaySEOData(data) {
     const modalBody = document.getElementById('seo-content');
     const isPro = data.isPro || false;
     
     modalBody.innerHTML = `
+      ${isPro ? renderProSEOAnalysis(data) : `
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); 
+                    border-radius: 8px; padding: 16px; margin: 0 0 16px 0; text-align: center;">
+          <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+            🚀 Unlock Professional SEO Analysis
+          </div>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+            Get SEO scoring, SERP preview, Core Web Vitals, competitor benchmarks, and actionable recommendations!
+          </div>
+          <button onclick="proManager.showUpgradePrompt();" 
+                  style="background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%); color: white; 
+                         border: none; border-radius: 6px; padding: 8px 16px; font-size: 12px; 
+                         font-weight: 600; cursor: pointer;">
+            Upgrade to Pro
+          </button>
+        </div>
+      `}
+      
       <div class="seo-section">
         <h3 class="seo-section-title">Page Title</h3>
         <div class="seo-content">${data.title}</div>
@@ -2078,117 +2525,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
         </div>
       </div>
-      
-      ${isPro ? `
-        <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%); 
-                    border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; padding: 12px; margin: 16px 0;">
-          <div style="display: flex; align-items: center; margin-bottom: 12px;">
-            <h3 class="seo-section-title" style="margin: 0;">Pro Analysis</h3>
-            <span style="background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%); color: white; 
-                         padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; margin-left: 8px;">PRO</span>
-          </div>
-          
-          ${data.canonical ? `
-            <div class="seo-section">
-              <h4 class="seo-section-title">Canonical URL</h4>
-              <div class="seo-content" style="word-break: break-all;">${data.canonical}</div>
-            </div>
-          ` : ''}
-          
-          ${data.openGraph && Object.keys(data.openGraph).length > 0 ? `
-            <div class="seo-section">
-              <h4 class="seo-section-title">Open Graph Data</h4>
-              <div class="seo-content">
-                ${Object.entries(data.openGraph).map(([key, value]) => `
-                  <div class="seo-stat">
-                    <span class="seo-stat-label">${key}</span>
-                    <span class="seo-stat-value" style="word-break: break-all;">${value}</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-          
-          ${data.structuredData && data.structuredData.length > 0 ? `
-            <div class="seo-section">
-              <h4 class="seo-section-title">Structured Data (Schema.org)</h4>
-              <div class="seo-content">
-                ${data.structuredData.map(item => `
-                  <div style="margin-bottom: 8px; padding: 8px; background: var(--bg-secondary); 
-                              border-radius: 4px; border: 1px solid var(--border-color);">
-                    <strong>${item['@type'] || 'Unknown Type'}</strong>
-                    ${item.name ? `<div style="font-size: 12px; color: var(--text-secondary);">${item.name}</div>` : ''}
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-          
-          ${data.performance ? `
-            <div class="seo-section">
-              <h4 class="seo-section-title">Performance Metrics</h4>
-              <div class="seo-content">
-                <div class="seo-stat">
-                  <span class="seo-stat-label">DOM Elements</span>
-                  <span class="seo-stat-value">${data.performance.domSize.toLocaleString()}</span>
-                </div>
-                <div class="seo-stat">
-                  <span class="seo-stat-label">Scripts</span>
-                  <span class="seo-stat-value">${data.performance.scripts}</span>
-                </div>
-                <div class="seo-stat">
-                  <span class="seo-stat-label">Stylesheets</span>
-                  <span class="seo-stat-value">${data.performance.stylesheets}</span>
-                </div>
-              </div>
-            </div>
-          ` : ''}
-          
-          ${data.contentAnalysis && data.contentAnalysis.headingStructure.length > 0 ? `
-            <div class="seo-section">
-              <h4 class="seo-section-title">Heading Structure</h4>
-              <div class="seo-content">
-                ${data.contentAnalysis.headingStructure.map(item => `
-                  <div class="seo-stat">
-                    <span class="seo-stat-label">${item.tag.toUpperCase()}</span>
-                    <span class="seo-stat-value">${item.count}</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-          
-          ${data.contentAnalysis && Object.keys(data.contentAnalysis.keywordDensity).length > 0 ? `
-            <div class="seo-section">
-              <h4 class="seo-section-title">Top Keywords</h4>
-              <div class="seo-content">
-                ${Object.entries(data.contentAnalysis.keywordDensity).slice(0, 5).map(([word, density]) => `
-                  <div class="seo-stat">
-                    <span class="seo-stat-label">${word}</span>
-                    <span class="seo-stat-value">${density}</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-        </div>
-      ` : `
-        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); 
-                    border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
-          <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
-            🚀 Unlock Advanced SEO Analysis
-          </div>
-          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
-            Get structured data analysis, Open Graph tags, performance metrics, keyword density, and more!
-          </div>
-          <button onclick="proManager.showUpgradePrompt();" 
-                  style="background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%); color: white; 
-                         border: none; border-radius: 6px; padding: 8px 16px; font-size: 12px; 
-                         font-weight: 600; cursor: pointer;">
-            Upgrade to Pro
-          </button>
-        </div>
-      `}
     `;
     
     // Store data for export

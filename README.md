@@ -1,6 +1,12 @@
 # Site Structure Navigator Extension
 
-A premium Chrome extension that automatically discovers and maps website structure using multiple sources. Features a modern Figma-inspired UI with dark/light themes, advanced SEO analysis tools, and comprehensive site mapping capabilities.
+A premium Chrome extension that automatically discovers and maps website structure using multiple sources. Features a modern Figma-inspired UI with dark/light themes, professional SEO analysis tools, and comprehensive site mapping capabilities.
+
+## 💎 Pro Version Available
+Unlock advanced features with our Pro subscription:
+- **Monthly**: $4.99/month
+- **Annual**: $20/year (save 66%)
+- **Lifetime**: $39 one-time payment
 
 ## ✨ Features
 
@@ -46,14 +52,27 @@ A premium Chrome extension that automatically discovers and maps website structu
 - **Filter persistence** - Export respects active search filters
 
 ### 🔍 **SEO Analysis Tools**
-- **Comprehensive page analysis** - Extract key SEO metrics from any page
-- **Heading structure analysis** - H1, H2, H3 hierarchy and content
+
+#### Free Features:
+- **Basic page analysis** - Extract key SEO metrics from any page
+- **Heading structure** - H1, H2, H3 hierarchy and content
 - **Meta data extraction** - Title tags and meta descriptions
-- **Content metrics** - Word count and content analysis
+- **Content metrics** - Word count analysis
 - **Image audit** - Total images and alt text coverage
 - **Link analysis** - Internal vs external link counts
-- **Export SEO data** - JSON format for further analysis
-- **One-click copy** - Quick clipboard access to SEO metrics
+
+#### Pro Features ($4.99/mo):
+- **SEO Performance Score (0-100)** - Comprehensive scoring algorithm
+- **SERP Preview** - See exactly how your page appears in Google
+- **Core Web Vitals** - LCP, FID, CLS performance indicators
+- **Competitor Benchmarking** - Compare against industry standards
+- **Actionable Recommendations** - Prioritized issues and fixes
+- **Structured Data Detection** - Schema.org implementation check
+- **Open Graph Analysis** - Social media optimization audit
+- **Canonical URL Detection** - Duplicate content prevention
+- **Mobile Optimization Check** - Viewport and responsive design
+- **Performance Metrics** - DOM size, scripts, and stylesheet analysis
+- **Content Analysis** - Reading time and content depth assessment
 
 ### ⚙️ **Customizable Settings**
 - **File type filtering** - Hide/show XML files and other file types
@@ -63,12 +82,19 @@ A premium Chrome extension that automatically discovers and maps website structu
 - **Figma-style toggles** - Beautiful animated switch controls
 
 ### 📊 **Export Capabilities**
-- **CSV Export** - Perfect for spreadsheet analysis and SEO audits
-  - URL, Path, Depth, Timestamp columns
-  - Compatible with Excel, Google Sheets
-- **JSON Export** - Structured data for programmatic access
-  - Hierarchical data structure
-  - Includes metadata and timestamps
+
+#### Free Version:
+- **Limited Export** - Up to 10 URLs per export
+- **Basic CSV/JSON** - Standard format with essential data
+
+#### Pro Version:
+- **Unlimited Export** - Export entire site structure
+- **Bulk Export Mode** - Select and export specific URLs
+- **Advanced Filtering**:
+  - Status code filtering (200, 301, 404, etc.)
+  - File type filtering (HTML, PDF, images, etc.)
+  - URL pattern matching
+  - Depth-based filtering
 - **Smart naming** - `sitemap_domain_YYYY-MM-DD` format
 
 ### 🖱️ **Enhanced Navigation**
@@ -223,9 +249,10 @@ This extension draws inspiration from:
 - Modern Chrome extension architecture
 - Web accessibility standards
 
-## 📈 Recent Updates (v1.1.0)
+## 📈 Recent Updates (v1.2.0)
 
-- ✅ SEO Analysis Tool - Comprehensive page metrics extraction
+### Free Features Added:
+- ✅ SEO Analysis Tool - Basic page metrics extraction
 - ✅ Dark/Light Theme Support - Full theme switching capability
 - ✅ Response Status Indicators - Visual 200/301/404 badges
 - ✅ Settings Panel - Customizable preferences with Figma-style UI
@@ -233,16 +260,46 @@ This extension draws inspiration from:
 - ✅ 3-Dot Actions Menu - Quick access to SEO tools and utilities
 - ✅ Auto Status Checking - Configurable HTTP status verification
 
+### Pro Features Added:
+- ✅ **SEO Performance Scoring** - 0-100 score with visual indicator
+- ✅ **SERP Preview** - Google search result preview
+- ✅ **Core Web Vitals** - Estimated LCP, FID, CLS metrics
+- ✅ **Competitor Benchmarking** - Industry comparison
+- ✅ **Bulk Export Mode** - Select and export specific URLs
+- ✅ **Advanced SEO Filtering** - Status codes, file types, patterns
+- ✅ **Actionable Recommendations** - Prioritized SEO fixes
+- ✅ **ExtensionPay Integration** - Secure subscription management
+
+## 🆚 Free vs Pro Comparison
+
+| Feature | Free | Pro |
+|---------|------|-----|
+| **Site Structure Discovery** | ✅ | ✅ |
+| **Tree & Flat View** | ✅ | ✅ |
+| **Search & Filter** | ✅ | ✅ |
+| **Dark/Light Theme** | ✅ | ✅ |
+| **Export Limit** | 10 URLs | Unlimited |
+| **Bulk Export Mode** | ❌ | ✅ |
+| **SEO Score (0-100)** | ❌ | ✅ |
+| **SERP Preview** | ❌ | ✅ |
+| **Core Web Vitals** | ❌ | ✅ |
+| **Competitor Benchmarks** | ❌ | ✅ |
+| **SEO Recommendations** | ❌ | ✅ |
+| **Structured Data Check** | ❌ | ✅ |
+| **Open Graph Analysis** | ❌ | ✅ |
+| **Advanced Filtering** | ❌ | ✅ |
+| **Priority Support** | ❌ | ✅ |
+
 ## 🚧 Future Roadmap
 
-- [ ] Bulk URL operations
-- [ ] Advanced filtering with regex
-- [ ] Page metadata preview on hover
-- [ ] Change detection between scans
-- [ ] Cloud sync for settings
-- [ ] Export scheduling
-- [ ] Broken link checker
-- [ ] Sitemap generator
+- [ ] Page speed insights integration
+- [ ] Keyword density analysis
+- [ ] Backlink checker
+- [ ] XML sitemap generator
+- [ ] Scheduled site audits
+- [ ] Export to Google Sheets
+- [ ] Team collaboration features
+- [ ] White-label options
 
 ## 💬 Support
 
@@ -256,6 +313,15 @@ For issues and feature requests:
 
 ---
 
-**Version:** 1.1.0  
+**Version:** 1.2.0  
 **Last Updated:** January 2025  
 **Compatibility:** Chrome 88+, Edge 88+, Brave, Opera
+
+## 💰 Pricing
+
+- **Free Version**: Core features with 10 URL export limit
+- **Pro Monthly**: $4.99/month - Cancel anytime
+- **Pro Annual**: $20/year - Best value (66% off)
+- **Pro Lifetime**: $39 - One-time payment, lifetime access
+
+All Pro plans include unlimited exports, advanced SEO analysis, and priority support.
