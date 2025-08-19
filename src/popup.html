@@ -245,7 +245,7 @@
 
       .nav-item-actions {
         display: flex;
-        gap: 4px;
+        gap: 6px;
         align-items: center;
       }
 
@@ -270,6 +270,109 @@
 
       .action-btn.copied {
         color: var(--success-green);
+      }
+
+      /* Status Pills - Notion/Figma inspired */
+      .status-pill {
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+
+      /* Success states (200-299) */
+      .status-pill.status-2xx {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border-color: rgba(16, 185, 129, 0.2);
+      }
+
+      .status-pill.status-2xx:hover {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+      }
+
+      /* Redirect states (300-399) */
+      .status-pill.status-3xx {
+        background: rgba(251, 191, 36, 0.1);
+        color: #fbbf24;
+        border-color: rgba(251, 191, 36, 0.2);
+      }
+
+      .status-pill.status-3xx:hover {
+        background: rgba(251, 191, 36, 0.15);
+        border-color: rgba(251, 191, 36, 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(251, 191, 36, 0.2);
+      }
+
+      /* Client error states (400-499) */
+      .status-pill.status-4xx {
+        background: rgba(251, 146, 60, 0.1);
+        color: #fb923c;
+        border-color: rgba(251, 146, 60, 0.2);
+      }
+
+      .status-pill.status-4xx:hover {
+        background: rgba(251, 146, 60, 0.15);
+        border-color: rgba(251, 146, 60, 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(251, 146, 60, 0.2);
+      }
+
+      /* Server error states (500-599) */
+      .status-pill.status-5xx {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.2);
+      }
+
+      .status-pill.status-5xx:hover {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+      }
+
+      /* Unknown status */
+      .status-pill.status-unknown {
+        background: rgba(107, 114, 128, 0.1);
+        color: #6b7280;
+        border-color: rgba(107, 114, 128, 0.2);
+      }
+
+      .status-pill.status-unknown:hover {
+        background: rgba(107, 114, 128, 0.15);
+        border-color: rgba(107, 114, 128, 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(107, 114, 128, 0.15);
+      }
+
+      /* Status dot indicator */
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
       }
 
 
@@ -620,7 +723,8 @@
           <svg class="icon" fill="currentColor" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;">
             <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
           </svg>
-          <div style="margin-top: 12px;">Discovering site structure...</div>
+          <div id="loading-text" style="margin-top: 12px;">Discovering site structure...</div>
+          <div id="loading-status" style="margin-top: 8px; font-size: 11px; color: var(--text-muted);"></div>
         </div>
         <div id="no-results" class="no-results">No matching paths found</div>
         <div id="nav-menu"></div>

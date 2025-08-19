@@ -60,7 +60,7 @@ class PathFilter {
 class SiteMapper {
   constructor(baseUrl) {
     this.baseUrl = baseUrl;
-    this.paths = new Set();
+    this.paths = new Map(); // Changed to Map to store path with status
   }
 
   isValidUrl(url) {
@@ -86,7 +86,13 @@ class SiteMapper {
       this.checkCommonPaths(),
     ]);
 
-    const paths = Array.from(this.paths).sort();
+    // Convert to array with path and status info
+    const pathsArray = Array.from(this.paths.entries())
+      .map(([path, status]) => ({ path, status }))
+      .sort((a, b) => a.path.localeCompare(b.path));
+
+    // Batch check status codes for paths without status
+    await this.batchCheckStatuses(pathsArray);
 
     // Get current tab ID and update badge
     try {
@@ -98,14 +104,60 @@ class SiteMapper {
         chrome.runtime.sendMessage({
           type: "UPDATE_PAGE_COUNT",
           tabId: tab.id,
-          count: paths.length,
+          count: pathsArray.length,
         });
       }
     } catch (error) {
       console.warn("Error updating badge:", error);
     }
 
-    return paths;
+    return pathsArray;
+  }
+
+  async batchCheckStatuses(pathsArray, batchSize = 5, maxChecks = 50) {
+    // Limit the number of status checks for performance
+    const pathsToCheck = pathsArray.filter(item => !item.status).slice(0, maxChecks);
+    
+    if (pathsToCheck.length === 0) return;
+    
+    // Update loading status
+    const loadingStatus = document.getElementById('loading-status');
+    const loadingText = document.getElementById('loading-text');
+    
+    if (loadingText) {
+      loadingText.textContent = 'Checking page statuses...';
+    }
+    
+    for (let i = 0; i < pathsToCheck.length; i += batchSize) {
+      const batch = pathsToCheck.slice(i, i + batchSize);
+      
+      if (loadingStatus) {
+        const progress = Math.round((i / pathsToCheck.length) * 100);
+        loadingStatus.textContent = `Checking statuses... ${progress}%`;
+      }
+      
+      const promises = batch.map(async (item) => {
+        try {
+          const response = await this.fetchWithTimeout(
+            `${this.baseUrl}${item.path}`,
+            3000
+          );
+          item.status = response.status;
+          // Handle redirects
+          if (response.redirected) {
+            item.status = 301; // Assume redirect
+          }
+        } catch (error) {
+          // Default to unknown status
+          item.status = null;
+        }
+      });
+      await Promise.all(promises);
+    }
+    
+    if (loadingText) {
+      loadingText.textContent = 'Loading complete';
+    }
   }
 
   async fetchWithTimeout(url, timeout = 5000) {
@@ -288,7 +340,7 @@ class SiteMapper {
           2000
         );
         if (response.ok) {
-          this.paths.add(path);
+          this.paths.set(path, response.status);
         }
       } catch {
         // Ignore errors for common paths
@@ -298,7 +350,7 @@ class SiteMapper {
     await Promise.all(promises);
   }
 
-  addCleanPath(url) {
+  addCleanPath(url, status = null) {
     try {
       let urlObj;
       if (url.startsWith("/")) {
@@ -317,7 +369,9 @@ class SiteMapper {
           !path.includes("$") &&
           !path.includes("..")
         ) {
-          this.paths.add(path);
+          if (!this.paths.has(path)) {
+            this.paths.set(path, status);
+          }
         }
       }
     } catch {
@@ -373,10 +427,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Build tree structure from paths
-  function buildTreeStructure(paths) {
+  function buildTreeStructure(pathsData) {
     const root = { name: 'Home', path: '/', children: {}, count: 0 };
     
-    paths.forEach(path => {
+    // Handle both old and new data formats
+    const pathItems = pathsData.map ? 
+      pathsData : 
+      pathsData.map(item => typeof item === 'string' ? { path: item } : item);
+    
+    pathItems.forEach(item => {
+      const path = item.path || item;
       const segments = path.split('/').filter(Boolean);
       let current = root;
       let currentPath = '';
@@ -405,9 +465,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Render tree view
-  function buildTreeView(paths, baseUrl, faviconUrl) {
+  function buildTreeView(pathsData, baseUrl, faviconUrl) {
     const treeContent = document.getElementById('tree-content');
-    const tree = buildTreeStructure(paths);
+    const tree = buildTreeStructure(pathsData);
     
     treeContent.innerHTML = '';
     
@@ -549,7 +609,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   function getVisiblePaths() {
     return Array.from(document.querySelectorAll(".nav-item"))
       .filter(item => !item.classList.contains("hidden"))
-      .map(item => item.querySelector(".nav-item-path")?.textContent || item.dataset.path);
+      .map(item => {
+        const path = item.querySelector(".nav-item-path")?.textContent || item.dataset.path;
+        const statusText = item.querySelector(".status-pill span:last-child")?.textContent;
+        const status = statusText && statusText !== '?' ? parseInt(statusText) : null;
+        return { path: item.dataset.path, status };
+      });
   }
 
   function downloadFile(content, filename, type) {
@@ -563,34 +628,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function exportAsCSV() {
-    const paths = searchInput.value.trim() ? getVisiblePaths() : allPaths;
+    const items = searchInput.value.trim() ? getVisiblePaths() : allPaths;
     const timestamp = new Date().toISOString().split("T")[0];
     const domain = currentDomain.replace(/[^a-z0-9]/gi, "_");
     
-    let csv = "URL,Path,Depth,Timestamp\n";
-    paths.forEach(path => {
+    let csv = "URL,Path,Status,Depth,Timestamp\n";
+    items.forEach(item => {
+      const path = item.path || item;
+      const status = item.status || '';
       const fullUrl = `${currentDomain}${path}`;
       const depth = path.split("/").filter(Boolean).length;
-      csv += `"${fullUrl}","${path}",${depth},"${timestamp}"\n`;
+      csv += `"${fullUrl}","${path}","${status}",${depth},"${timestamp}"\n`;
     });
     
     downloadFile(csv, `sitemap_${domain}_${timestamp}.csv`, "text/csv");
   }
 
   function exportAsJSON() {
-    const paths = searchInput.value.trim() ? getVisiblePaths() : allPaths;
+    const items = searchInput.value.trim() ? getVisiblePaths() : allPaths;
     const timestamp = new Date().toISOString();
     const domain = currentDomain.replace(/[^a-z0-9]/gi, "_");
     
     const data = {
       domain: currentDomain,
       timestamp,
-      totalPages: paths.length,
-      pages: paths.map(path => ({
-        path,
-        url: `${currentDomain}${path}`,
-        depth: path.split("/").filter(Boolean).length
-      }))
+      totalPages: items.length,
+      pages: items.map(item => {
+        const path = item.path || item;
+        const status = item.status || null;
+        return {
+          path,
+          url: `${currentDomain}${path}`,
+          status,
+          depth: path.split("/").filter(Boolean).length
+        };
+      })
     };
     
     const json = JSON.stringify(data, null, 2);
@@ -655,15 +727,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  function renderPaths(paths, baseUrl, faviconUrl) {
+  function getStatusClass(status) {
+    if (!status) return 'status-unknown';
+    if (status >= 200 && status < 300) return 'status-2xx';
+    if (status >= 300 && status < 400) return 'status-3xx';
+    if (status >= 400 && status < 500) return 'status-4xx';
+    if (status >= 500 && status < 600) return 'status-5xx';
+    return 'status-unknown';
+  }
+
+  function renderPaths(pathsData, baseUrl, faviconUrl) {
     // Clear existing content
     navMenu.innerHTML = "";
     
+    // Extract paths for grouping
+    const pathItems = pathsData.map ? 
+      pathsData : 
+      pathsData.map(item => typeof item === 'string' ? { path: item, status: null } : item);
+    
     // Group paths by source/section
     const sections = {
-      "Main Pages": paths.filter((p) => p.split("/").length === 2),
-      "Sub Pages": paths.filter((p) => p.split("/").length === 3),
-      "Deep Pages": paths.filter((p) => p.split("/").length > 3),
+      "Main Pages": pathItems.filter((p) => p.path.split("/").length === 2),
+      "Sub Pages": pathItems.filter((p) => p.path.split("/").length === 3),
+      "Deep Pages": pathItems.filter((p) => p.path.split("/").length > 3),
     };
 
     // Render sections with new design
@@ -681,7 +767,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         `;
         section.appendChild(header);
 
-        sectionPaths.forEach((path) => {
+        sectionPaths.forEach((item) => {
+          const path = item.path || item;
+          const status = item.status;
           const div = document.createElement("div");
           div.className = "nav-item";
           div.dataset.path = path;
@@ -749,6 +837,15 @@ document.addEventListener("DOMContentLoaded", async () => {
           // Actions container
           const actions = document.createElement("div");
           actions.className = "nav-item-actions";
+          
+          // Status pill
+          const statusPill = document.createElement("div");
+          statusPill.className = `status-pill ${getStatusClass(status)}`;
+          statusPill.innerHTML = `
+            <span class="status-dot"></span>
+            <span>${status || '?'}</span>
+          `;
+          actions.appendChild(statusPill);
           
           // Copy button
           const copyBtn = document.createElement("button");
@@ -832,19 +929,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Fetch fresh paths
       isUsingCache = false;
       const siteMapper = new SiteMapper(baseUrl);
-      const paths = await siteMapper.getAllPaths();
+      const pathsData = await siteMapper.getAllPaths();
 
-      if (paths.length === 0) {
+      if (pathsData.length === 0) {
         throw new Error("No paths found on this site");
       }
 
-      allPaths = paths;
+      allPaths = pathsData;
       
       // Cache the paths for future use
-      await cachePaths(baseUrl, paths);
+      await cachePaths(baseUrl, pathsData);
       
       loading.style.display = "none";
-      renderPaths(paths, baseUrl, faviconUrl);
+      renderPaths(pathsData, baseUrl, faviconUrl);
     }
   } catch (err) {
     const error = document.createElement("div");
