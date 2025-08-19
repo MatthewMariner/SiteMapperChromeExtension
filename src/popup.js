@@ -331,7 +331,62 @@ document.addEventListener("DOMContentLoaded", async () => {
   const navMenu = document.getElementById("nav-menu");
   const searchInput = document.getElementById("search-input");
   const noResults = document.getElementById("no-results");
+  const exportContainer = document.getElementById("export-container");
+  const exportCsvBtn = document.getElementById("export-csv");
+  const exportJsonBtn = document.getElementById("export-json");
   let allPaths = [];
+  let currentDomain = "";
+
+  function getVisiblePaths() {
+    return Array.from(document.querySelectorAll(".nav-item"))
+      .filter(item => !item.classList.contains("hidden"))
+      .map(item => item.textContent);
+  }
+
+  function downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportAsCSV() {
+    const paths = searchInput.value.trim() ? getVisiblePaths() : allPaths;
+    const timestamp = new Date().toISOString().split("T")[0];
+    const domain = currentDomain.replace(/[^a-z0-9]/gi, "_");
+    
+    let csv = "URL,Path,Depth,Timestamp\n";
+    paths.forEach(path => {
+      const fullUrl = `${currentDomain}${path}`;
+      const depth = path.split("/").filter(Boolean).length;
+      csv += `"${fullUrl}","${path}",${depth},"${timestamp}"\n`;
+    });
+    
+    downloadFile(csv, `sitemap_${domain}_${timestamp}.csv`, "text/csv");
+  }
+
+  function exportAsJSON() {
+    const paths = searchInput.value.trim() ? getVisiblePaths() : allPaths;
+    const timestamp = new Date().toISOString();
+    const domain = currentDomain.replace(/[^a-z0-9]/gi, "_");
+    
+    const data = {
+      domain: currentDomain,
+      timestamp,
+      totalPages: paths.length,
+      pages: paths.map(path => ({
+        path,
+        url: `${currentDomain}${path}`,
+        depth: path.split("/").filter(Boolean).length
+      }))
+    };
+    
+    const json = JSON.stringify(data, null, 2);
+    downloadFile(json, `sitemap_${domain}_${timestamp.split("T")[0]}.json`, "application/json");
+  }
 
   function filterPaths(searchText) {
     if (!searchText.trim()) {
@@ -377,6 +432,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 300);
   });
 
+  // Add export button handlers
+  exportCsvBtn.addEventListener("click", exportAsCSV);
+  exportJsonBtn.addEventListener("click", exportAsJSON);
+
   try {
     // Get current tab URL
     const [tab] = await chrome.tabs.query({
@@ -391,6 +450,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const url = new URL(tab.url);
     const baseUrl = `${url.protocol}//${url.hostname}`;
+    currentDomain = baseUrl;
 
     const siteMapper = new SiteMapper(baseUrl);
     const paths = await siteMapper.getAllPaths();
@@ -400,6 +460,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     allPaths = paths;
+    
+    // Show export buttons once paths are loaded
+    exportContainer.classList.add("visible");
 
     // Group paths by source/section
     const sections = {

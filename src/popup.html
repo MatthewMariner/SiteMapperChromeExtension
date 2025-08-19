@@ -149,6 +149,38 @@
       ::-webkit-scrollbar-thumb:hover {
         background: var(--text-primary);
       }
+
+      /* Export buttons */
+      .export-container {
+        display: none;
+        gap: 8px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .export-container.visible {
+        display: flex;
+      }
+
+      .export-btn {
+        flex: 1;
+        padding: 6px 12px;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: background 0.2s;
+      }
+
+      .export-btn:hover {
+        background: var(--hover-bg);
+      }
+
+      .export-btn:active {
+        transform: translateY(1px);
+      }
     </style>
   </head>
   <body>
@@ -158,6 +190,10 @@
         id="search-input"
         placeholder="Search paths (use * for wildcards, / for segments)"
       />
+    </div>
+    <div id="export-container" class="export-container">
+      <button id="export-csv" class="export-btn">Export as CSV</button>
+      <button id="export-json" class="export-btn">Export as JSON</button>
     </div>
     <div id="loading">Discovering site structure...</div>
     <div id="no-results" class="no-results">No matching paths found</div>

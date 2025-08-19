@@ -78,3 +78,6 @@ coverage/
 # Parcel bundler cache
 .cache/
 .parcel-cache/
+
+# Roadmap
+Roadmap.md

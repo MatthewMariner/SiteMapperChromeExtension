@@ -18,6 +18,14 @@ A Chrome extension that automatically discovers and maps website structure using
   - URLs grouped by depth (main pages, sub-pages, deep pages)
   - Clean path presentation
   - Click-to-navigate functionality
+  - Middle-click to open in background tab
+
+- 📥 Export Capabilities
+
+  - Export to CSV for spreadsheet analysis
+  - Export to JSON for programmatic access
+  - Includes URL, path, depth, and timestamp metadata
+  - Respects current search filters when exporting
 
 - 🛡️ Security & Performance
   - URL scheme validation
@@ -43,11 +51,16 @@ git clone [repository-url]
 ## Project Structure
 
 ```
-site-mapper-extension/
-├── manifest.json        # Extension configuration
-├── popup.html          # Extension popup interface
-├── popup.js            # Main functionality
-└── background.js       # Background service worker
+WebsiteNavigator/
+├── src/                 # Source files
+│   ├── manifest.json    # Extension configuration
+│   ├── popup.html       # Extension popup interface  
+│   ├── popup.js         # Main functionality
+│   ├── background.js    # Background service worker
+│   └── icons/           # Extension icons
+├── dist/                # Built extension files
+├── webpack.config.js    # Build configuration
+└── package.json         # Dependencies and scripts
 ```
 
 ## Usage
@@ -55,7 +68,9 @@ site-mapper-extension/
 1. Click the extension icon while on any webpage
 2. The extension will scan the website using multiple methods
 3. Discovered URLs will be displayed in a hierarchical menu
-4. Click any URL to open it in a new tab
+4. Click any URL to open it in a new tab (middle-click for background tab)
+5. Use the search box to filter paths with wildcards (* and **)
+6. Export discovered URLs using CSV or JSON buttons
 
 ## Security Features
 
@@ -87,15 +102,17 @@ The extension provides clear feedback for common issues:
 
 ### Prerequisites
 
+- Node.js and npm
 - Google Chrome
 - Basic understanding of JavaScript and Chrome Extension APIs
 
 ### Making Changes
 
-1. Modify the source files as needed
-2. Go to `chrome://extensions/`
-3. Click the refresh icon on the extension
-4. Test your changes
+1. Modify the source files in the `src/` directory
+2. Run `npm run build` to compile the extension
+3. Go to `chrome://extensions/`
+4. Click the refresh icon on the extension
+5. Test your changes
 
 ### Adding New Features
 
