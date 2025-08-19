@@ -350,6 +350,212 @@
         background: var(--text-muted);
       }
 
+      /* View Containers */
+      .view-container {
+        display: none;
+        height: 100%;
+        overflow-y: auto;
+      }
+
+      .view-container.active {
+        display: block;
+      }
+
+      /* Bottom Navigation */
+      .bottom-nav {
+        display: flex;
+        background: var(--bg-primary);
+        border-top: 1px solid var(--border-color);
+        padding: 0;
+      }
+
+      .nav-tab {
+        flex: 1;
+        padding: 10px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s;
+        position: relative;
+      }
+
+      .nav-tab:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-secondary);
+      }
+
+      .nav-tab.active {
+        color: var(--accent-blue);
+      }
+
+      .nav-tab.active::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--accent-blue);
+      }
+
+      .tab-icon {
+        width: 20px;
+        height: 20px;
+      }
+
+      .tab-label {
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      /* Tree View Styles */
+      .tree-container {
+        padding: 16px;
+        min-height: 100%;
+        background: var(--bg-secondary);
+      }
+
+      .tree-node {
+        position: relative;
+        margin-left: 20px;
+      }
+
+      .tree-node.root {
+        margin-left: 0;
+      }
+
+      .tree-node-content {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        margin: 2px 0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+      }
+
+      .tree-node-content:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .tree-node-content.selected {
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+      }
+
+      .tree-toggle {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: rgba(255, 255, 255, 0.6);
+        transition: transform 0.2s;
+      }
+
+      .tree-toggle.expanded {
+        transform: rotate(90deg);
+      }
+
+      .tree-toggle.no-children {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .tree-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 10px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--accent-blue);
+      }
+
+      .tree-label {
+        flex: 1;
+        font-size: 13px;
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+
+      .tree-count {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+
+      .tree-children {
+        margin-left: 12px;
+        position: relative;
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .tree-children.expanded {
+        max-height: 5000px;
+        opacity: 1;
+      }
+
+      .tree-children::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(to bottom, 
+          rgba(255, 255, 255, 0.3), 
+          rgba(255, 255, 255, 0.2),
+          rgba(255, 255, 255, 0.1));
+      }
+
+      .tree-node-leaf {
+        margin-left: 28px;
+      }
+
+      .tree-node-leaf .tree-node-content {
+        padding: 6px 10px;
+      }
+
+      .tree-node-leaf .tree-icon {
+        width: 20px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      /* Animations */
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .tree-node {
+        animation: slideIn 0.3s ease-out;
+      }
+
       /* Icons */
       .icon {
         width: 18px;
@@ -408,14 +614,40 @@
 
     <!-- Main Content -->
     <div class="main-content">
-      <div id="loading">
-        <svg class="icon" fill="currentColor" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;">
-          <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
-        </svg>
-        <div style="margin-top: 12px;">Discovering site structure...</div>
+      <!-- List View -->
+      <div id="list-view" class="view-container active">
+        <div id="loading">
+          <svg class="icon" fill="currentColor" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;">
+            <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
+          </svg>
+          <div style="margin-top: 12px;">Discovering site structure...</div>
+        </div>
+        <div id="no-results" class="no-results">No matching paths found</div>
+        <div id="nav-menu"></div>
       </div>
-      <div id="no-results" class="no-results">No matching paths found</div>
-      <div id="nav-menu"></div>
+      
+      <!-- Tree View -->
+      <div id="tree-view" class="view-container">
+        <div class="tree-container">
+          <div id="tree-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+      <button class="nav-tab active" data-view="list">
+        <svg class="tab-icon" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+        </svg>
+        <span class="tab-label">List</span>
+      </button>
+      <button class="nav-tab" data-view="tree">
+        <svg class="tab-icon" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M22,11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3H22z"/>
+        </svg>
+        <span class="tab-label">Tree</span>
+      </button>
     </div>
 
     <style>

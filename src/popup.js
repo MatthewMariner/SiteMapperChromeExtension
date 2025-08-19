@@ -342,6 +342,177 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Focus search input on load
   setTimeout(() => searchInput.focus(), 100);
 
+  // Store favicon URL globally
+  let globalFaviconUrl = '';
+
+  // Tab switching
+  const navTabs = document.querySelectorAll('.nav-tab');
+  const viewContainers = document.querySelectorAll('.view-container');
+  
+  navTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetView = tab.dataset.view;
+      
+      // Update active states
+      navTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      // Switch views
+      viewContainers.forEach(container => {
+        container.classList.remove('active');
+        if (container.id === `${targetView}-view`) {
+          container.classList.add('active');
+        }
+      });
+      
+      // Build tree view if switching to it
+      if (targetView === 'tree' && allPaths.length > 0) {
+        buildTreeView(allPaths, currentDomain, globalFaviconUrl);
+      }
+    });
+  });
+
+  // Build tree structure from paths
+  function buildTreeStructure(paths) {
+    const root = { name: 'Home', path: '/', children: {}, count: 0 };
+    
+    paths.forEach(path => {
+      const segments = path.split('/').filter(Boolean);
+      let current = root;
+      let currentPath = '';
+      
+      segments.forEach((segment, index) => {
+        currentPath += '/' + segment;
+        
+        if (!current.children[segment]) {
+          current.children[segment] = {
+            name: segment,
+            path: currentPath,
+            children: {},
+            count: 0,
+            isLeaf: index === segments.length - 1
+          };
+        }
+        
+        current.children[segment].count++;
+        current = current.children[segment];
+      });
+      
+      root.count++;
+    });
+    
+    return root;
+  }
+
+  // Render tree view
+  function buildTreeView(paths, baseUrl, faviconUrl) {
+    const treeContent = document.getElementById('tree-content');
+    const tree = buildTreeStructure(paths);
+    
+    treeContent.innerHTML = '';
+    
+    // Create root node
+    const rootNode = createTreeNode(tree, baseUrl, true, faviconUrl);
+    treeContent.appendChild(rootNode);
+  }
+
+  // Create tree node element
+  function createTreeNode(node, baseUrl, isRoot = false, faviconUrl = null) {
+    const nodeEl = document.createElement('div');
+    nodeEl.className = `tree-node ${isRoot ? 'root' : ''}`;
+    
+    // Node content
+    const content = document.createElement('div');
+    content.className = 'tree-node-content';
+    
+    // Toggle button
+    const hasChildren = Object.keys(node.children).length > 0;
+    const toggle = document.createElement('div');
+    toggle.className = `tree-toggle ${hasChildren ? '' : 'no-children'}`;
+    toggle.innerHTML = hasChildren ? `
+      <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+      </svg>
+    ` : '';
+    
+    // Icon
+    const icon = document.createElement('div');
+    icon.className = 'tree-icon';
+    
+    // Use favicon for root node
+    if (isRoot && faviconUrl) {
+      const favicon = document.createElement('img');
+      favicon.src = faviconUrl;
+      favicon.style.width = '16px';
+      favicon.style.height = '16px';
+      favicon.style.objectFit = 'contain';
+      favicon.onerror = () => {
+        icon.innerHTML = '';
+        icon.textContent = node.name[0].toUpperCase();
+      };
+      icon.appendChild(favicon);
+    } else {
+      icon.textContent = node.name[0].toUpperCase();
+    }
+    
+    // Label
+    const label = document.createElement('div');
+    label.className = 'tree-label';
+    label.textContent = node.name.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    // Count
+    if (node.count > 0) {
+      const count = document.createElement('div');
+      count.className = 'tree-count';
+      count.textContent = node.count;
+      content.appendChild(toggle);
+      content.appendChild(icon);
+      content.appendChild(label);
+      content.appendChild(count);
+    } else {
+      content.appendChild(toggle);
+      content.appendChild(icon);
+      content.appendChild(label);
+    }
+    
+    // Click handler for navigation
+    content.addEventListener('click', (e) => {
+      if (!e.target.closest('.tree-toggle') && node.path !== '/') {
+        chrome.tabs.create({ url: baseUrl + node.path });
+      }
+    });
+    
+    nodeEl.appendChild(content);
+    
+    // Children container
+    if (hasChildren) {
+      const childrenContainer = document.createElement('div');
+      childrenContainer.className = 'tree-children';
+      
+      Object.values(node.children).forEach(child => {
+        const childNode = createTreeNode(child, baseUrl);
+        childrenContainer.appendChild(childNode);
+      });
+      
+      nodeEl.appendChild(childrenContainer);
+      
+      // Toggle functionality
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggle.classList.toggle('expanded');
+        childrenContainer.classList.toggle('expanded');
+      });
+      
+      // Auto-expand root
+      if (isRoot) {
+        toggle.classList.add('expanded');
+        childrenContainer.classList.add('expanded');
+      }
+    }
+    
+    return nodeEl;
+  }
+
   async function getCachedPaths(domain) {
     try {
       const result = await chrome.storage.local.get([domain]);
@@ -646,6 +817,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     // Get favicon URL
     const faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
+    globalFaviconUrl = faviconUrl;
 
     // Check for cached paths first
     const cachedPaths = await getCachedPaths(baseUrl);

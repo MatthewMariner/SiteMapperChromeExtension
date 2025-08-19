@@ -1,165 +1,227 @@
 # Site Structure Navigator Extension
 
-A Chrome extension that automatically discovers and maps website structure using multiple sources including robots.txt, sitemaps, and common paths. It creates an easy-to-navigate menu of all discovered URLs organized by depth.
+A premium Chrome extension that automatically discovers and maps website structure using multiple sources. Features a modern Bitwarden-inspired dark UI with advanced visualization capabilities.
 
-## Features
+## ✨ Features
 
-- 🔍 Multiple Source Discovery
+### 🔍 **Intelligent Discovery Engine**
+- **Robots.txt parsing** - Extracts allowed/disallowed paths and sitemap locations
+- **XML Sitemap processing** - Recursively processes nested sitemaps
+- **HTML Sitemap detection** - Finds and parses HTML-based sitemaps
+- **Current page link scanning** - Analyzes all links on the active page
+- **Common path checking** - Tests standard URL patterns
+- **Meta tag analysis** - Extracts navigation hints from page metadata
 
-  - Robots.txt parsing
-  - XML Sitemap processing (including nested sitemaps)
-  - HTML Sitemap detection
-  - Current page link scanning
-  - Common path checking
-  - Meta tag analysis
+### 🎨 **Modern Dark UI (2025 Design)**
+- **Bitwarden-inspired interface** - Professional dark theme with blue accents
+- **Site favicons** - Displays website icons for visual recognition
+- **Badge counter** - Shows discovered page count on extension icon
+- **Smooth animations** - Cubic-bezier transitions throughout
+- **Auto-focus search** - Instant search capability on popup open
+- **Responsive layout** - Optimized 400x600px design
 
-- 📊 Smart Organization
+### 🌳 **Visual Sitemap Tree View**
+- **Interactive tree visualization** - Parent-child relationship display
+- **Expandable/collapsible nodes** - Navigate complex structures easily
+- **Gradient visual indicators** - Beautiful depth visualization
+- **Node counters** - Shows child count at each level
+- **Favicon integration** - Root node displays site favicon
+- **One-click navigation** - Open any page from the tree
 
-  - URLs grouped by depth (main pages, sub-pages, deep pages)
-  - Clean path presentation
-  - Click-to-navigate functionality
-  - Middle-click to open in background tab
+### 💾 **Smart Caching & Persistence**
+- **Permanent cache storage** - Discovered paths persist until manually cleared
+- **Instant loading** - Cached results display immediately
+- **Manual refresh control** - Clear cache with refresh button
+- **Per-domain storage** - Each site maintains its own cache
+- **Visual indicators** - Shows when viewing cached vs fresh data
 
-- 📥 Export Capabilities
+### 🔎 **Advanced Search & Filter**
+- **Wildcard support** - Use `*` for single segment, `**` for multiple
+- **Path segment search** - Use `/` to search specific URL segments
+- **Real-time filtering** - Instant results with debounced input
+- **Filter persistence** - Export respects active search filters
 
-  - Export to CSV for spreadsheet analysis
-  - Export to JSON for programmatic access
-  - Includes URL, path, depth, and timestamp metadata
-  - Respects current search filters when exporting
+### 📊 **Export Capabilities**
+- **CSV Export** - Perfect for spreadsheet analysis and SEO audits
+  - URL, Path, Depth, Timestamp columns
+  - Compatible with Excel, Google Sheets
+- **JSON Export** - Structured data for programmatic access
+  - Hierarchical data structure
+  - Includes metadata and timestamps
+- **Smart naming** - `sitemap_domain_YYYY-MM-DD` format
 
-- 🛡️ Security & Performance
-  - URL scheme validation
-  - Timeout handling
-  - Error recovery
-  - Parallel processing
-  - Cross-origin protection
+### 🖱️ **Enhanced Navigation**
+- **Click to open** - Single click opens in new tab
+- **Middle-click support** - Open in background tab
+- **Copy URL button** - One-click copy for any discovered path
+- **Keyboard friendly** - Full keyboard navigation support
 
-## Installation
+### 🛡️ **Security & Performance**
+- **URL validation** - Only processes http/https URLs
+- **Chrome URL protection** - Blocks access to restricted URLs
+- **Timeout handling** - 5-second timeout for all requests
+- **Parallel processing** - Concurrent fetching for speed
+- **No credentials** - Strips authentication from requests
+- **Cross-origin safety** - Respects browser security policies
 
-1. Clone this repository or download the source code
+## 📦 Installation
 
+### From Source
+1. Clone this repository:
 ```bash
 git clone [repository-url]
+cd WebsiteNavigator
 ```
 
-2. Open Chrome and navigate to `chrome://extensions/`
+2. Install dependencies:
+```bash
+npm install
+```
 
-3. Enable "Developer mode" in the top right corner
+3. Build the extension:
+```bash
+npm run build
+```
 
-4. Click "Load unpacked" and select the extension directory
+4. Load in Chrome:
+   - Navigate to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the `dist/` directory
 
-## Project Structure
+### From Chrome Web Store
+Coming soon!
+
+## 🚀 Usage
+
+### Basic Navigation
+1. **Click the extension icon** on any website
+2. **Wait for discovery** (or instant load from cache)
+3. **Browse discovered pages** in List or Tree view
+4. **Click any path** to navigate to that page
+
+### Search & Filter
+- Type in the search box to filter results
+- Use `*` for wildcard matching
+- Use `/` to match path segments
+- Examples:
+  - `blog` - finds all paths containing "blog"
+  - `/api/*` - finds all API endpoints
+  - `**/*.pdf` - finds all PDF files
+
+### Tree View
+1. Click the **Tree** tab at the bottom
+2. Click arrows to expand/collapse branches
+3. View parent-child relationships
+4. Click any node to navigate
+
+### Exporting Data
+1. Click **Export CSV** for spreadsheet format
+2. Click **Export JSON** for structured data
+3. Files download automatically with timestamp
+
+## 🏗️ Project Structure
 
 ```
 WebsiteNavigator/
 ├── src/                 # Source files
-│   ├── manifest.json    # Extension configuration
-│   ├── popup.html       # Extension popup interface  
-│   ├── popup.js         # Main functionality
-│   ├── background.js    # Background service worker
-│   └── icons/           # Extension icons
-├── dist/                # Built extension files
+│   ├── manifest.json    # Extension configuration (Manifest V3)
+│   ├── popup.html       # Main UI interface
+│   ├── popup.js         # Core functionality & site mapping
+│   ├── background.js    # Service worker for badge updates
+│   └── icons/           # Extension icons (16, 48, 128px)
+├── dist/                # Built extension (auto-generated)
 ├── webpack.config.js    # Build configuration
-└── package.json         # Dependencies and scripts
+├── package.json         # Dependencies and scripts
+└── extension.zip        # Chrome Web Store package
 ```
 
-## Usage
-
-1. Click the extension icon while on any webpage
-2. The extension will scan the website using multiple methods
-3. Discovered URLs will be displayed in a hierarchical menu
-4. Click any URL to open it in a new tab (middle-click for background tab)
-5. Use the search box to filter paths with wildcards (* and **)
-6. Export discovered URLs using CSV or JSON buttons
-
-## Security Features
-
-- Only works on http/https URLs
-- Prevents access to chrome:// and other restricted URLs
-- Sanitizes paths to prevent directory traversal
-- Implements fetch timeouts
-- Removes credentials from requests
-- Validates all URLs before processing
-
-## Error Handling
-
-The extension provides clear feedback for common issues:
-
-- Non-web pages (chrome://, file://, etc.)
-- Inaccessible resources
-- Empty results
-- Network timeouts
-- Invalid URLs
-
-## Limitations
-
-- Only works on regular web pages (http/https)
-- Cannot access chrome:// or other restricted URLs
-- Subject to website's robots.txt restrictions
-- Network requests may timeout on slow connections
-
-## Development
+## 🔧 Development
 
 ### Prerequisites
+- Node.js 14+ and npm
+- Google Chrome or Chromium-based browser
+- Basic knowledge of JavaScript and Chrome Extension APIs
 
-- Node.js and npm
-- Google Chrome
-- Basic understanding of JavaScript and Chrome Extension APIs
+### Build Commands
+```bash
+npm install          # Install dependencies
+npm run build        # Build extension to dist/
+npm run zip          # Create extension.zip for distribution
+npm run generate-icons  # Generate icons from SVG source
+```
 
 ### Making Changes
+1. Edit source files in `src/` directory
+2. Run `npm run build` to compile
+3. Reload extension in Chrome
+4. Test your changes thoroughly
 
-1. Modify the source files in the `src/` directory
-2. Run `npm run build` to compile the extension
-3. Go to `chrome://extensions/`
-4. Click the refresh icon on the extension
-5. Test your changes
+### Architecture Notes
+- **Pure JavaScript** - No heavy frameworks, ~28KB minified
+- **Chrome Storage API** - For persistent caching
+- **Webpack bundling** - Modern build pipeline
+- **Manifest V3** - Latest Chrome extension standard
 
-### Adding New Features
+## 🎯 Permissions
 
-To add new URL discovery methods:
+The extension requires minimal permissions:
+- **activeTab** - Access current tab for scanning
+- **scripting** - Inject scripts to analyze page links
+- **storage** - Cache discovered paths
+- **host_permissions** - Fetch sitemaps and robots.txt
 
-1. Create a new method in the `SiteMapper` class
-2. Add it to the `getAllPaths()` method
-3. Implement appropriate error handling
-4. Test thoroughly with different websites
+## 🐛 Troubleshooting
 
-## Contributing
+### Extension not working?
+- Ensure you're on an http/https website
+- Check if the site has a restrictive robots.txt
+- Try the refresh button to clear cache
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+### No paths found?
+- Some sites block automated discovery
+- Try navigating to different pages
+- Check browser console for errors
 
-## Best Practices
+### Slow discovery?
+- Large sites may take longer
+- Network speed affects discovery time
+- Cached results load instantly
 
-When contributing, please:
+## 📝 License
 
-- Add comments for complex logic
-- Follow existing error handling patterns
-- Test on various website types
-- Update documentation as needed
+MIT License - Free for personal and commercial use
 
-## License
+## 🙏 Acknowledgments
 
-MIT License - feel free to use this code for any purpose
+This extension draws inspiration from:
+- Bitwarden's elegant dark UI design
+- Professional SEO audit tools
+- Modern Chrome extension architecture
+- Web accessibility standards
 
-## Support
+## 📈 Future Roadmap
 
-For issues and feature requests, please:
+- [ ] Bulk URL operations
+- [ ] Response status indicators (200/404)
+- [ ] Advanced filtering with regex
+- [ ] Page metadata preview on hover
+- [ ] Change detection between scans
+- [ ] Cloud sync for settings
+- [ ] Export scheduling
 
-1. Check existing issues
+## 💬 Support
+
+For issues and feature requests:
+1. Check existing GitHub issues
 2. Create a new issue with:
    - Clear description
    - Steps to reproduce
-   - Expected behavior
+   - Expected vs actual behavior
    - Screenshots if applicable
 
-## Acknowledgments
+---
 
-This extension draws inspiration from:
-
-- Web crawlers
-- Site mapping tools
-- Chrome's extension architecture
-- Various sitemap standards
+**Version:** 1.0.1  
+**Last Updated:** 2024  
+**Compatibility:** Chrome 88+, Edge 88+, Brave, Opera
