@@ -979,6 +979,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
     });
+    
+    // Add event listener for comparison table upgrade button
+    const comparisonUpgradeBtn = document.querySelector('.comparison-table .upgrade-to-pro-btn');
+    if (comparisonUpgradeBtn) {
+      comparisonUpgradeBtn.addEventListener('click', () => {
+        proManager.showUpgradePrompt();
+      });
+    }
   }
 
   // Build tree structure from paths
@@ -1191,11 +1199,57 @@ document.addEventListener("DOMContentLoaded", async () => {
     a.click();
     URL.revokeObjectURL(url);
   }
+  
+  function showExportLimitNotice() {
+    // Remove any existing notifications
+    const existing = document.querySelector('.export-limit-notice');
+    if (existing) existing.remove();
+    
+    const notification = document.createElement('div');
+    notification.className = 'export-limit-notice';
+    notification.style.cssText = `
+      position: fixed; 
+      bottom: 20px; 
+      right: 20px; 
+      background: var(--bg-secondary); 
+      border: 1px solid var(--border-color); 
+      border-radius: 8px; 
+      padding: 12px 16px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+      z-index: 10000; 
+      max-width: 300px;
+      animation: slideIn 0.3s ease-out;
+    `;
+    notification.innerHTML = `
+      <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">
+        Export Limited to 10 URLs
+      </div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+        Upgrade to Pro for unlimited exports
+      </div>
+      <button onclick="proManager.showUpgradePrompt(); this.parentElement.remove();" 
+              style="background: var(--accent-blue); color: white; border: none; 
+                     border-radius: 4px; padding: 4px 12px; font-size: 12px; cursor: pointer;">
+        Upgrade Now
+      </button>
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 8000);
+  }
 
-  function exportAsCSV() {
-    const items = searchInput.value.trim() ? getVisiblePaths() : allPaths;
+  async function exportAsCSV() {
+    let items = searchInput.value.trim() ? getVisiblePaths() : allPaths;
     const timestamp = new Date().toISOString().split("T")[0];
     const domain = currentDomain.replace(/[^a-z0-9]/gi, "_");
+    
+    // Check if user is Pro and enforce limits
+    const isPro = await proManager.checkStatus();
+    if (!isPro && items.length > 10) {
+      // Limit to 10 URLs for free users
+      items = items.slice(0, 10);
+      // Show notification about limit
+      showExportLimitNotice();
+    }
     
     let csv = "URL,Path,Status,Depth,Timestamp\n";
     items.forEach(item => {
@@ -1207,13 +1261,22 @@ document.addEventListener("DOMContentLoaded", async () => {
       csv += `"${fullUrl}","${path}","${status}",${depth},"${timestamp}"\n`;
     });
     
-    downloadFile(csv, `sitemap_${domain}_${timestamp}.csv`, "text/csv");
+    downloadFile(csv, `sitemap_${domain}_${timestamp}${!isPro && allPaths.length > 10 ? '_limited' : ''}.csv`, "text/csv");
   }
 
-  function exportAsJSON() {
-    const items = searchInput.value.trim() ? getVisiblePaths() : allPaths;
+  async function exportAsJSON() {
+    let items = searchInput.value.trim() ? getVisiblePaths() : allPaths;
     const timestamp = new Date().toISOString();
     const domain = currentDomain.replace(/[^a-z0-9]/gi, "_");
+    
+    // Check if user is Pro and enforce limits
+    const isPro = await proManager.checkStatus();
+    if (!isPro && items.length > 10) {
+      // Limit to 10 URLs for free users
+      items = items.slice(0, 10);
+      // Show notification about limit
+      showExportLimitNotice();
+    }
     
     const pages = [];
     items.forEach(item => {
@@ -1232,11 +1295,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       domain: currentDomain,
       timestamp,
       totalPages: pages.length,
+      exportLimited: !isPro && allPaths.length > 10,
       pages
     };
     
     const json = JSON.stringify(data, null, 2);
-    downloadFile(json, `sitemap_${domain}_${timestamp.split("T")[0]}.json`, "application/json");
+    downloadFile(json, `sitemap_${domain}_${timestamp.split("T")[0]}${!isPro && allPaths.length > 10 ? '_limited' : ''}.json`, "application/json");
   }
 
   function filterPaths(searchText) {
@@ -1454,14 +1518,44 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (sectionPaths.length > 0) {
         const section = document.createElement("div");
         section.className = "source-section";
+        
+        // Add margin-top to Main Pages section
+        if (title === "Main Pages") {
+          section.style.marginTop = "5px";
+        }
 
-        // Section header with count
+        // Section header with count and collapse arrow
         const header = document.createElement("div");
-        header.className = "source-header";
+        header.className = "source-header collapsible";
         header.innerHTML = `
-          <span>${title}${isUsingCache ? " (cached)" : ""}</span>
+          <span style="display: flex; align-items: center;">
+            <svg class="collapse-arrow" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="transition: transform 0.2s; margin-right: 4px;">
+              <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+            </svg>
+            ${title}${isUsingCache ? " (cached)" : ""}
+          </span>
           <span class="source-count">${sectionPaths.length}</span>
         `;
+        header.style.cursor = "pointer";
+        
+        // Create content container for collapsible behavior
+        const contentContainer = document.createElement("div");
+        contentContainer.className = "section-content";
+        
+        // Add click handler to header for collapse/expand
+        header.onclick = () => {
+          const arrow = header.querySelector('.collapse-arrow');
+          const isCollapsed = contentContainer.style.display === 'none';
+          
+          if (isCollapsed) {
+            contentContainer.style.display = 'block';
+            arrow.style.transform = 'rotate(0deg)';
+          } else {
+            contentContainer.style.display = 'none';
+            arrow.style.transform = 'rotate(-90deg)';
+          }
+        };
+        
         section.appendChild(header);
 
         sectionPaths.forEach((item) => {
@@ -1657,9 +1751,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           div.appendChild(icon);
           div.appendChild(content);
           div.appendChild(actions);
-          section.appendChild(div);
+          contentContainer.appendChild(div);
         });
 
+        section.appendChild(contentContainer);
         navMenu.appendChild(section);
       }
     });
@@ -1787,10 +1882,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
       });
       
+      // Check if user is Pro for advanced features
+      const isPro = await proManager.checkStatus();
+      
       // Execute script to extract SEO data
       const results = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        func: function() {
+        func: function(isPro) {
           const data = {
             title: document.title || 'No title',
             description: document.querySelector('meta[name="description"]')?.content || 'No description',
@@ -1800,7 +1898,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             wordCount: 0,
             images: { total: 0, withoutAlt: 0 },
             links: { internal: 0, external: 0 },
-            meta: {}
+            meta: {},
+            isPro: isPro
           };
           
           // Get H1 tags
@@ -1849,8 +1948,53 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
           });
           
+          // Advanced Pro features
+          if (isPro) {
+            // Schema.org structured data
+            data.structuredData = [];
+            document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+              try {
+                const json = JSON.parse(script.textContent);
+                data.structuredData.push(json);
+              } catch (e) {}
+            });
+            
+            // Canonical URL
+            const canonical = document.querySelector('link[rel="canonical"]');
+            data.canonical = canonical ? canonical.href : null;
+            
+            // Open Graph data
+            data.openGraph = {};
+            document.querySelectorAll('meta[property^="og:"]').forEach(meta => {
+              const property = meta.getAttribute('property').replace('og:', '');
+              data.openGraph[property] = meta.content;
+            });
+            
+            // Performance metrics
+            data.performance = {
+              domSize: document.getElementsByTagName('*').length,
+              scripts: document.scripts.length,
+              stylesheets: document.styleSheets.length
+            };
+            
+            // Content analysis
+            data.contentAnalysis = {
+              headingStructure: [],
+              keywordDensity: {}
+            };
+            
+            // Analyze heading structure
+            ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(tag => {
+              const count = document.querySelectorAll(tag).length;
+              if (count > 0) {
+                data.contentAnalysis.headingStructure.push({ tag, count });
+              }
+            });
+          }
+          
           return data;
-        }
+        },
+        args: [isPro]
       });
       
       // Close the tab
@@ -1862,8 +2006,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
   
-  function displaySEOData(data) {
+  async function displaySEOData(data) {
     const modalBody = document.getElementById('seo-content');
+    const isPro = data.isPro || false;
     
     modalBody.innerHTML = `
       <div class="seo-section">
@@ -1933,6 +2078,117 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
         </div>
       </div>
+      
+      ${isPro ? `
+        <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%); 
+                    border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; padding: 12px; margin: 16px 0;">
+          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+            <h3 class="seo-section-title" style="margin: 0;">Pro Analysis</h3>
+            <span style="background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%); color: white; 
+                         padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; margin-left: 8px;">PRO</span>
+          </div>
+          
+          ${data.canonical ? `
+            <div class="seo-section">
+              <h4 class="seo-section-title">Canonical URL</h4>
+              <div class="seo-content" style="word-break: break-all;">${data.canonical}</div>
+            </div>
+          ` : ''}
+          
+          ${data.openGraph && Object.keys(data.openGraph).length > 0 ? `
+            <div class="seo-section">
+              <h4 class="seo-section-title">Open Graph Data</h4>
+              <div class="seo-content">
+                ${Object.entries(data.openGraph).map(([key, value]) => `
+                  <div class="seo-stat">
+                    <span class="seo-stat-label">${key}</span>
+                    <span class="seo-stat-value" style="word-break: break-all;">${value}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          
+          ${data.structuredData && data.structuredData.length > 0 ? `
+            <div class="seo-section">
+              <h4 class="seo-section-title">Structured Data (Schema.org)</h4>
+              <div class="seo-content">
+                ${data.structuredData.map(item => `
+                  <div style="margin-bottom: 8px; padding: 8px; background: var(--bg-secondary); 
+                              border-radius: 4px; border: 1px solid var(--border-color);">
+                    <strong>${item['@type'] || 'Unknown Type'}</strong>
+                    ${item.name ? `<div style="font-size: 12px; color: var(--text-secondary);">${item.name}</div>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          
+          ${data.performance ? `
+            <div class="seo-section">
+              <h4 class="seo-section-title">Performance Metrics</h4>
+              <div class="seo-content">
+                <div class="seo-stat">
+                  <span class="seo-stat-label">DOM Elements</span>
+                  <span class="seo-stat-value">${data.performance.domSize.toLocaleString()}</span>
+                </div>
+                <div class="seo-stat">
+                  <span class="seo-stat-label">Scripts</span>
+                  <span class="seo-stat-value">${data.performance.scripts}</span>
+                </div>
+                <div class="seo-stat">
+                  <span class="seo-stat-label">Stylesheets</span>
+                  <span class="seo-stat-value">${data.performance.stylesheets}</span>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+          
+          ${data.contentAnalysis && data.contentAnalysis.headingStructure.length > 0 ? `
+            <div class="seo-section">
+              <h4 class="seo-section-title">Heading Structure</h4>
+              <div class="seo-content">
+                ${data.contentAnalysis.headingStructure.map(item => `
+                  <div class="seo-stat">
+                    <span class="seo-stat-label">${item.tag.toUpperCase()}</span>
+                    <span class="seo-stat-value">${item.count}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          
+          ${data.contentAnalysis && Object.keys(data.contentAnalysis.keywordDensity).length > 0 ? `
+            <div class="seo-section">
+              <h4 class="seo-section-title">Top Keywords</h4>
+              <div class="seo-content">
+                ${Object.entries(data.contentAnalysis.keywordDensity).slice(0, 5).map(([word, density]) => `
+                  <div class="seo-stat">
+                    <span class="seo-stat-label">${word}</span>
+                    <span class="seo-stat-value">${density}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      ` : `
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); 
+                    border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
+          <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+            🚀 Unlock Advanced SEO Analysis
+          </div>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+            Get structured data analysis, Open Graph tags, performance metrics, keyword density, and more!
+          </div>
+          <button onclick="proManager.showUpgradePrompt();" 
+                  style="background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%); color: white; 
+                         border: none; border-radius: 6px; padding: 8px 16px; font-size: 12px; 
+                         font-weight: 600; cursor: pointer;">
+            Upgrade to Pro
+          </button>
+        </div>
+      `}
     `;
     
     // Store data for export
