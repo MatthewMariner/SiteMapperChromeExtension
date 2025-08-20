@@ -251,13 +251,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "UPDATE_PAGE_COUNT") {
     updateBadge(message.tabId, message.count);
   } else if (message.type === "CHECK_PRO_STATUS") {
-    // Use cached validation for faster response
-    licenseValidator.validateLicense().then(licenseData => {
-      sendResponse(licenseData);
-    }).catch(error => {
-      console.error('License validation error:', error);
-      sendResponse({ paid: false, error: true });
-    });
+    // For login flow, check directly with ExtPay first, then fall back to cache
+    (async () => {
+      try {
+        // Try direct ExtPay call first (for fresh login detection)
+        const extpay = ExtPay('site-structure-navigator');
+        const user = await extpay.getUser();
+        
+        // If user is authenticated, cache it and return
+        if (user && user.paid !== undefined) {
+          const licenseData = {
+            paid: user.paid,
+            email: user.email,
+            subscriptionStatus: user.subscriptionStatus,
+            subscriptionCancelAt: user.subscriptionCancelAt,
+            trialStartedAt: user.trialStartedAt,
+            timestamp: Date.now()
+          };
+          // Cache the fresh data
+          await licenseValidator.cacheLicense(licenseData);
+          sendResponse(licenseData);
+          return;
+        }
+      } catch (directError) {
+        console.warn('Direct ExtPay check failed, falling back to cache:', directError);
+      }
+      
+      // Fall back to cached validation if direct call fails
+      try {
+        const licenseData = await licenseValidator.validateLicense();
+        sendResponse(licenseData);
+      } catch (error) {
+        console.error('License validation error:', error);
+        sendResponse({ paid: false, error: true });
+      }
+    })();
     return true; // Required for async response
   } else if (message.type === "LOGOUT_USER") {
     // Handle logout request
@@ -278,19 +306,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })();
     return true; // Keep message channel open for async response
   } else if (message.type === "OPEN_PAYMENT_PAGE") {
-    const extpay = ExtPay('site-structure-navigator');
-    extpay.openPaymentPage();
+    try {
+      const extpay = ExtPay('site-structure-navigator');
+      extpay.openPaymentPage();
+      sendResponse({ success: true });
+    } catch (error) {
+      console.error('Error opening payment page:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+    return true;
   } else if (message.type === "OPEN_LOGIN_PAGE") {
-    const extpay = ExtPay('site-structure-navigator');
-    extpay.openLoginPage();
+    try {
+      const extpay = ExtPay('site-structure-navigator');
+      extpay.openLoginPage();
+      sendResponse({ success: true });
+    } catch (error) {
+      console.error('Error opening login page:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+    return true;
   } else if (message.type === "FORCE_LICENSE_CHECK") {
-    // Force a fresh license validation (bypass cache)
-    licenseValidator.validateLicense(true).then(licenseData => {
-      sendResponse(licenseData);
-    }).catch(error => {
-      console.error('Force license check error:', error);
-      sendResponse({ paid: false, error: true });
-    });
+    // Force a fresh license validation (bypass cache and rate limiting)
+    (async () => {
+      try {
+        // Direct call to ExtPay bypassing all caching and rate limiting
+        const extpay = ExtPay('site-structure-navigator');
+        const user = await extpay.getUser();
+        
+        const licenseData = {
+          paid: user.paid,
+          email: user.email,
+          subscriptionStatus: user.subscriptionStatus,
+          subscriptionCancelAt: user.subscriptionCancelAt,
+          trialStartedAt: user.trialStartedAt,
+          timestamp: Date.now()
+        };
+        
+        // Cache the fresh data
+        await licenseValidator.cacheLicense(licenseData);
+        sendResponse(licenseData);
+      } catch (error) {
+        console.error('Force license check error:', error);
+        sendResponse({ paid: false, error: true });
+      }
+    })();
     return true;
   } else if (message.type === "CLEAR_LICENSE_CACHE") {
     // Clear cached license data

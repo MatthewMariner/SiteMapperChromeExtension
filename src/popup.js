@@ -48,7 +48,19 @@ class ProManager {
   }
 
   async openLoginPage() {
-    chrome.runtime.sendMessage({ type: "OPEN_LOGIN_PAGE" });
+    try {
+      const response = await chrome.runtime.sendMessage({ type: "OPEN_LOGIN_PAGE" });
+      if (response && response.success) {
+        // After opening login page, wait a bit then force refresh status
+        setTimeout(async () => {
+          await this.forceRevalidation();
+          // Reload the popup to reflect new status
+          window.location.reload();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Failed to open login page:', error);
+    }
   }
   
   async logout() {
@@ -826,6 +838,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   let allPaths = [];
   let currentDomain = "";
   let bulkModeActive = false; // Move to higher scope
+
+  // Listen for window focus to detect return from login
+  window.addEventListener('focus', async () => {
+    // When user returns from login page, check status
+    const oldStatus = proManager.isPro;
+    await proManager.forceRevalidation();
+    
+    // If status changed, reload the page
+    if (oldStatus !== proManager.isPro) {
+      window.location.reload();
+    }
+  });
 
   // Check Pro status
   await proManager.checkStatus();
