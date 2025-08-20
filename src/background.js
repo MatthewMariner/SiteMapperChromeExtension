@@ -5,6 +5,96 @@ importScripts('ExtPay.js');
 const extpay = ExtPay('site-structure-navigator');
 extpay.startBackground();
 
+// Welcome email configuration
+const WELCOME_EMAIL_CONFIG = {
+  endpoint: 'https://cors-proxy-mda.herokuapp.com/https://us-central1-mdamailer313.cloudfunctions.net/app/welcomeMessage',
+  productName: 'Site Structure Navigator Pro',
+  productSupportLink: 'https://github.com/MatthewMariner/SiteMapperChromeExtension',
+  maxRetries: 3,
+  retryDelay: 2000 // 2 seconds
+};
+
+// Welcome email sender with retry logic
+async function sendWelcomeEmail(userEmail, attempt = 1) {
+  try {
+    console.log(`Sending welcome email to ${userEmail} (attempt ${attempt})`);
+    
+    const response = await fetch(WELCOME_EMAIL_CONFIG.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Origin': 'chrome-extension://' + chrome.runtime.id
+      },
+      body: JSON.stringify({
+        to: userEmail,
+        productName: WELCOME_EMAIL_CONFIG.productName,
+        productSupportLink: WELCOME_EMAIL_CONFIG.productSupportLink,
+        from: 'matthew@marinerdigitalagency.com'
+      })
+    });
+
+    const result = await response.json();
+    
+    if (response.ok) {
+      console.log('Welcome email sent successfully:', result.messageId);
+      // Store that we've sent the welcome email to prevent duplicates
+      await chrome.storage.local.set({
+        [`welcome_email_sent_${userEmail}`]: {
+          sentAt: new Date().toISOString(),
+          messageId: result.messageId
+        }
+      });
+      return result;
+    } else {
+      throw new Error(result.message || 'Email send failed');
+    }
+  } catch (error) {
+    console.error(`Failed to send welcome email (attempt ${attempt}):`, error);
+    
+    // Retry logic
+    if (attempt < WELCOME_EMAIL_CONFIG.maxRetries) {
+      console.log(`Retrying in ${WELCOME_EMAIL_CONFIG.retryDelay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, WELCOME_EMAIL_CONFIG.retryDelay));
+      return sendWelcomeEmail(userEmail, attempt + 1);
+    }
+    
+    // Log final failure but don't throw - we don't want to break the extension
+    console.error('Failed to send welcome email after all retries:', error);
+    return null;
+  }
+}
+
+// Listen for first-time payments
+extpay.onPaid.addListener(async (user) => {
+  console.log('User completed first payment:', user);
+  
+  if (user.email) {
+    // Check if we've already sent a welcome email to this user
+    const storage = await chrome.storage.local.get([`welcome_email_sent_${user.email}`]);
+    
+    if (!storage[`welcome_email_sent_${user.email}`]) {
+      // Send welcome email asynchronously (don't block)
+      sendWelcomeEmail(user.email).catch(error => {
+        console.error('Welcome email process failed:', error);
+      });
+    } else {
+      console.log('Welcome email already sent to this user');
+    }
+  } else {
+    console.warn('No email address available for welcome email');
+  }
+  
+  // Clear any cached license data to force refresh
+  const licenseValidator = new LicenseValidator();
+  await licenseValidator.validateLicense(true);
+});
+
+// Listen for trial starts (optional - you might want to send a different email for trials)
+extpay.onTrialStarted.addListener(async (user) => {
+  console.log('User started trial:', user);
+  // You could implement a trial welcome email here if desired
+});
+
 // License validation constants
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const GRACE_PERIOD = 3 * 24 * 60 * 60 * 1000; // 3 days grace period
