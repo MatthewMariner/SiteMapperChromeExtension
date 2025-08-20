@@ -2539,7 +2539,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
             Get SEO scoring, SERP preview, Core Web Vitals, competitor benchmarks, and actionable recommendations!
           </div>
-          <button onclick="proManager.showUpgradePrompt();" 
+          <button id="seo-upgrade-btn" 
                   style="background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%); color: white; 
                          border: none; border-radius: 6px; padding: 8px 16px; font-size: 12px; 
                          font-weight: 600; cursor: pointer;">
@@ -2616,6 +2616,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
       </div>
     `;
+    
+    // Add event listener for the upgrade button (only for non-Pro users)
+    if (!data.isPro) {
+      const upgradeBtn = document.getElementById('seo-upgrade-btn');
+      if (upgradeBtn) {
+        upgradeBtn.addEventListener('click', () => {
+          proManager.showUpgradePrompt();
+        });
+      }
+    }
     
     // Store data for export
     window.currentSEOData = data;
