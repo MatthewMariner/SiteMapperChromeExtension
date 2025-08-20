@@ -13,9 +13,12 @@
   },
   "permissions": ["activeTab", "scripting", "storage"],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https://extensionpay.com https: http:"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },
   "host_permissions": ["<all_urls>"],
+  "externally_connectable": {
+    "matches": ["https://extensionpay.com/*"]
+  },
   "content_scripts": [
     {
       "matches": ["https://extensionpay.com/*"],
