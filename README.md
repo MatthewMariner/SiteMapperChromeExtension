@@ -1,6 +1,8 @@
 # Site Structure Navigator Extension
 
-A premium Chrome extension that automatically discovers and maps website structure using multiple sources. Features a modern Figma-inspired UI with dark/light themes, professional SEO analysis tools, and comprehensive site mapping capabilities. Available here: https://chromewebstore.google.com/detail/site-structure-navigator/jcidaogiecfddcmhcnplfagahimdmied
+A premium Chrome extension that automatically discovers and maps website structure using multiple sources. Features a modern Figma-inspired UI with dark/light themes, professional SEO analysis tools, and comprehensive site mapping capabilities. 
+
+Available here: [Chrome Web Store](https://chromewebstore.google.com/detail/site-structure-navigator/jcidaogiecfddcmhcnplfagahimdmied)
 
 ## 💎 Pro Version Available
 Unlock advanced features with our Pro subscription:
